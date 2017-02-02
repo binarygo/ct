@@ -10,22 +10,22 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-def resample(image, spacing, new_spacing=[1,1,1]):
+def resample(image, spacing, iso_spacing=1):
     """ Resample image from spacing to new_spacing.
 
     Args:
       image: 3D image of shape (z, y, x).
       spacing: (z, y, x) spacing of image.
-      new_spacing: resampling to this new (z, y, x) spacing.
+      iso_spacing: isotropic resampling to this new spacing.
 
     Returns:
       Image resampled to new_spacing.
     """
     spacing = np.asarray(spacing, dtype=np.float)
-    new_spacing = np.asarray(new_spacing, dtype=np.float)
+    new_spacing = np.asarray([iso_spacing] * 3, dtype=np.float)
     
     resize_factor = spacing / new_spacing
-    image = ndimage.interpolation.zoom(image, resize_factor)
+    image = ndimage.interpolation.zoom(image, zoom=resize_factor, mode='nearest')
 
     return image
 
@@ -53,14 +53,6 @@ def plot_3d(image, threshold=-300):
     ax.set_zlim(0, p.shape[2])
 
     plt.show()
-
-
-def apply_mask(image, mask):
-    image = image.copy()
-    new_mean = np.mean(image[mask>0])
-    new_std = np.std(image[mask>0])
-    image[mask==0] = new_mean - 1.2 * new_std
-    return image
 
 
 def _dilate_mask(mask, spacing):
@@ -116,7 +108,7 @@ def segment_lung_mask_v1(image, spacing):
     labels = measure.label(binary_image, background=0)
     l_max = _largest_label_volume(labels, bg=0)
     if l_max is not None: # There are air pockets
-        binary_image[labels != l_max] = 0
+        binary_image[labels!=l_max] = 0
 
     return _dilate_mask(binary_image, spacing)
 
@@ -226,6 +218,7 @@ def segment_lung_mask_v2(image, spacing):
 
 
 def _segment_lung_mask_v3_impl(img, spacing):
+    SCALE = 0.742188 / spacing
     img_h, img_w = img.shape
     #Standardize the pixel values
     mean = np.mean(img)
@@ -234,11 +227,8 @@ def _segment_lung_mask_v3_impl(img, spacing):
     img = img/std
     # Find the average pixel value near the lungs
     # to renormalize washed out images
-    factor = (1 - 300.0 / 512) / 2.0
-    h_pad = int(factor * img_h)
-    w_pad = int(factor * img_w)
-    middle = img[h_pad:img_h-h_pad,
-                 w_pad:img_w-w_pad]
+    pad = int(round(100 * SCALE))
+    middle = img[pad:img_h-pad, pad:img_w-pad]
     mean = np.mean(middle)  
     max = np.max(img)
     min = np.min(img)
@@ -279,13 +269,11 @@ def _segment_lung_mask_v3_impl(img, spacing):
     label_vals = np.unique(labels)
     regions = measure.regionprops(labels)
     good_labels = []
-    h_factor = img_h / 512.0
-    w_factor = img_w / 512.0
     for prop in regions:
         B = prop.bbox
-        if (B[2] - B[0] < 475 * h_factor and
-            B[3] - B[1] < 475 * w_factor and
-            B[0] > 40 * h_factor and B[2] < 472 * h_factor):
+        if (B[2] - B[0] < 475 * SCALE and
+            B[3] - B[1] < 475 * SCALE and
+            B[0] > 40 * SCALE and B[2] < 472 * SCALE):
             good_labels.append(prop.label)
     mask = np.ndarray([img_h, img_w],dtype=np.int8)
     mask[:] = 0
@@ -305,6 +293,14 @@ def segment_lung_mask_v3(image, spacing):
         for im in image
     ])
     return _dilate_mask(_postprocess_mask(binary), spacing)
+
+
+def apply_mask(image, mask):
+    image = image.copy()
+    new_mean = np.mean(image[mask>0])
+    new_std = np.std(image[mask>0])
+    image[mask==0] = -1000
+    return image
 
 
 def normalize(image):
