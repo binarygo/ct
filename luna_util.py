@@ -14,19 +14,21 @@ def make_nodule_mask(width, height, spacing, z, origin, center, diam):
       center: nodule center x, y, z (mm).
       diam: nodule diameter (mm).
     """
-    mask = np.zeros([height,width], dtype=np.bool) # 0's everywhere except nodule swapping x,y to match img
-    #convert to nodule space from world coordinates
+    mask = np.zeros([height,width], dtype=np.bool)
+    # 0's everywhere except nodule swapping x,y to match img
+    # convert to nodule space from world coordinates
 
     origin = np.asarray(origin)
     center = np.asarray(center)
 
     # Defining the voxel range in which the nodule falls
     v_center = (center - origin) / spacing
-    v_diam = int(diam / spacing + 5)
-    v_xmin = np.max([0,int(v_center[0]-v_diam)-5])
-    v_xmax = np.min([width-1,int(v_center[0]+v_diam)+5])
-    v_ymin = np.max([0,int(v_center[1]-v_diam)-5]) 
-    v_ymax = np.min([height-1,int(v_center[1]+v_diam)+5])
+    pad = 5
+    v_diam = int(diam / spacing + pad)
+    v_xmin = np.max([0,int(v_center[0]-v_diam)-pad])
+    v_xmax = np.min([width-1,int(v_center[0]+v_diam)+pad])
+    v_ymin = np.max([0,int(v_center[1]-v_diam)-pad]) 
+    v_ymax = np.min([height-1,int(v_center[1]+v_diam)+pad])
 
     v_xrange = range(v_xmin,v_xmax+1)
     v_yrange = range(v_ymin,v_ymax+1)
@@ -45,8 +47,7 @@ def make_nodule_mask(width, height, spacing, z, origin, center, diam):
     return mask
 
 
-def extract_nodule_masks(image, spacing, origin, nodule_df):
-    num_z, height, width = image.shape
+def extract_nodule_masks(num_z, height, width, spacing, d_izs, origin, nodule_df):
     origin = np.asarray(origin)
     ans = []
     for node_idx, cur_row in nodule_df.iterrows():
@@ -57,12 +58,10 @@ def extract_nodule_masks(image, spacing, origin, nodule_df):
         center = np.array([node_x, node_y, node_z])
         v_center = np.rint((center-origin)/spacing)
 
-        imgs = []
         masks = []
-        i_zs = np.arange(int(v_center[2])-1, int(v_center[2])+2).clip(0, num_z-1)
-        for i, i_z in enumerate(i_zs):
-            imgs.append(image[i_z])
+        izs = (np.asarray(d_izs) + v_center[2]).astype(np.int).clip(0, num_z-1)
+        for i, iz in enumerate(izs):
             masks.append(make_nodule_mask(
-                width, height, spacing, i_z*spacing+origin[2], origin, center, diam))
-        ans.append((np.stack(imgs), np.stack(masks)))
+                width, height, spacing, iz*spacing+origin[2], origin, center, diam))
+        ans.append((np.stack(masks), izs))
     return ans
