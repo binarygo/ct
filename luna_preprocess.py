@@ -51,10 +51,12 @@ def process_file(f, annt_df, spacing, dump=False):
         num_z, height, width, spacing, [-d_iz, 0, d_iz], np.array(origin), df)
 
     file_id = get_file_id(f)
+    ans = []
     for i, nodule_mask_info in enumerate(nodule_masks):
         nodule_mask, izs = nodule_mask_info
         tmp_image = image_resampled[izs]
         tmp_lung_mask = lung_mask[izs]
+        ans.append((tmp_image, tmp_lung_mask, nodule_mask))
         if dump:
             np.save(os.path.join(_OUTPUT_DIR, "%s_image_%s.npy"%(file_id, i)),
                     tmp_image)
@@ -62,7 +64,7 @@ def process_file(f, annt_df, spacing, dump=False):
                     tmp_lung_mask)
             np.save(os.path.join(_OUTPUT_DIR, "%s_nodule_mask_%s.npy"%(file_id, i)),
                     nodule_mask)
-    return tmp_image, tmp_lung_mask, nodule_mask
+    return ans
 
 
 if __name__ == '__main__':
