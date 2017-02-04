@@ -10,22 +10,28 @@ from matplotlib import pyplot as plt
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 
 
-def resample(image, spacing, iso_spacing=1):
+def find_first_neq(a, val):
+    for i, x in enumerate(a):
+        if np.any(np.abs(x - val) > 1.0e-6):
+            return i
+
+
+def resample(image, spacing, new_spacing=(1.0, 1.0, 1.0)):
     """ Resample image from spacing to new_spacing.
 
     Args:
       image: 3D image of shape (z, y, x).
-      spacing: (z, y, x) spacing of image.
-      iso_spacing: isotropic resampling to this new spacing.
+      spacing: (x, y, z) spacing of image.
+      new_spacing: resampling to this new spacing.
 
     Returns:
       Image resampled to new_spacing.
     """
     spacing = np.asarray(spacing, dtype=np.float)
-    new_spacing = np.asarray([iso_spacing] * 3, dtype=np.float)
+    new_spacing = np.asarray(new_spacing, dtype=np.float)
     
-    resize_factor = spacing / new_spacing
-    image = ndimage.interpolation.zoom(image, zoom=resize_factor, mode='nearest')
+    resize_factor = (spacing / new_spacing)
+    image = ndimage.interpolation.zoom(image, zoom=resize_factor[::-1], mode='nearest')
 
     return image
 
@@ -303,14 +309,13 @@ def apply_mask(image, mask):
     return image
 
 
-def normalize(image):
+def normalize(image, pixel_mean=0.25):
     MIN_BOUND = -1000.0
     MAX_BOUND = 400.0
-    PIXEL_MEAN = 0.25
     image = (image - MIN_BOUND) / (MAX_BOUND - MIN_BOUND)
     image[image>1] = 1.
     image[image<0] = 0.
-    return image - PIXEL_MEAN
+    return image - pixel_mean
 
 
 def plot_ct_scan(image):
