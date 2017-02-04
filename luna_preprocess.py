@@ -164,6 +164,10 @@ if __name__ == '__main__':
     for i, f in enumerate(file_list):
         print '========== process %s'%f
         sys.stdout.flush()
-        image = Image()
-        image.init(f, annt_df, iso_spacing=1.0, shrink_margin=2.0)
-        image.save(_OUTPUT_DIR)
+        try:
+            image = Image()
+            image.init(f, annt_df, iso_spacing=1.0, shrink_margin=2.0)
+            image.save(_OUTPUT_DIR)
+        except Exception as e:
+            print 'Error: %s'%e
+    print 'Done'
