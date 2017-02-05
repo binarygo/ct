@@ -102,19 +102,10 @@ class Image(object):
     def _shrink(self, shrink_margin):
         hero = self._lung_mask.astype(np.uint8)
         bg = hero[0, 0, 0]
+        # x, y, z
         v_margin = np.round(shrink_margin / self._spacing).astype(np.int)
-        offsets = []
-        slices = []
-        for axis in [0, 1, 2]:  # z, y, x
-            view = np.rollaxis(hero, axis)
-            dim = hero.shape[axis]
-            m = v_margin[2 - axis]
-            front = util.find_first_neq(view, bg)
-            front = min(dim, max(0, front - m))
-            back = util.find_first_neq(view[::-1], bg)
-            back = min(dim, max(0, back - m))
-            slices.append(slice(front, dim - back))
-            offsets.append(front)
+        slices = util.find_bbox(hero, v_margin[::-1], bg)
+        offsets = [s.start for s in slices]
         self._origin = self._origin + self._spacing * offsets[::-1]
         self._image = self._image[slices]
         self._lung_mask = self._lung_mask[slices]
@@ -133,7 +124,7 @@ class Image(object):
         ans[v_o[2]:v_o[2]+ball.shape[0],
             v_o[1]:v_o[1]+ball.shape[1],
             v_o[0]:v_o[0]+ball.shape[2]] = ball
-        return ans
+        return ans.astype(np.bool)
 
     def _make_nodule_masks(self, nodules):
         nodule_masks = []
@@ -154,6 +145,13 @@ class Image(object):
             # v_x, v_y, v_z, v_diam
             ans.append(tuple(list(v_center) + [v_radius * 2]))
         return ans
+
+    @property
+    def masked_lung(self):
+        return util.apply_mask(self._image, self._lung_mask)
+        
+    def masked_nodule(self, nodule_idx):
+        return util.apply_mask(self._image, self._nodule_masks[nodule_idx])
 
 
 if __name__ == '__main__':
