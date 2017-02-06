@@ -16,7 +16,14 @@ _OUTPUT_DIR = '../LUNA16/output'
 
 
 def get_file_id(f):
-    return os.path.basename(f)[:-4]
+    f = os.path.basename(f)
+    idx = f.rfind('.')
+    if idx > 0:
+        f = f[0:idx]
+    idx = f.rfind('_')
+    if idx > 0:
+        f = f[0:idx]
+    return f
 
 
 def get_file_list():
@@ -41,7 +48,7 @@ class Image(object):
 
     def init(self, f, annt_df,
              iso_spacing=1.0,  # mm
-             shrink_margin=5.0):  # mm
+             shrink_margin=2.0):  # mm
         self._f = f
         self._f_id = get_file_id(f)
 
@@ -65,7 +72,9 @@ class Image(object):
         self._nodules = np.asarray(nodules, dtype=np.float)
         self._make_nodule_masks(self._nodules)
 
-    def save(self, output_dir):
+    def save(self, output_dir=None):
+        if output_dir is None:
+            output_dir = _OUTPUT_DIR
         np.savez_compressed(
             os.path.join(output_dir, self._f_id + '_digest'),
             f=self._f,
@@ -76,7 +85,9 @@ class Image(object):
             lung_mask=self._lung_mask,
             nodules=self._nodules)
 
-    def load(self, output_dir, f_id):
+    def load(self, f_id, output_dir=None):
+        if output_dir is None:
+            output_dir = _OUTPUT_DIR        
         ans = np.load(os.path.join(output_dir, f_id + '_digest.npz'))
         self._f = ans['f'].item()
         self._f_id = ans['f_id'].item()
@@ -165,7 +176,7 @@ if __name__ == '__main__':
         try:
             image = Image()
             image.init(f, annt_df, iso_spacing=1.0, shrink_margin=2.0)
-            image.save(_OUTPUT_DIR)
+            image.save()
         except Exception as e:
             print 'Error: %s'%e
     print 'Done'

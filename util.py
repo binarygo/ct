@@ -421,3 +421,8 @@ def enhance_filter_3d(image, sigmas, kind='dot'):
         else:
             ans = np.maximum(ans, tmp)
     return ans
+
+def get_dot_enhance_filter_sigmas(d0, d1, N=5):
+    r = np.power(d1 / d0, 1.0 / (N - 1))
+    sigmas = np.power(r, np.arange(N)) * d0 / 4
+    return sigmas
