@@ -153,7 +153,7 @@ def _postprocess_mask(mask):
         return binary
     
     max2_label_counts, max2_label = counts_and_vals[1]
-    if max2_label_counts > 0.5 * max_label_counts:
+    if max2_label_counts > 0.2 * max_label_counts:
         binary[(labels!=max_label)&(labels!=max2_label)] = 0
     else:
         binary[labels!=max_label] = 0
@@ -426,3 +426,26 @@ def get_dot_enhance_filter_sigmas(d0, d1, N=5):
     r = np.power(d1 / d0, 1.0 / (N - 1))
     sigmas = np.power(r, np.arange(N)) * d0 / 4
     return sigmas
+
+
+    def sample_file_ids(min_num_nodules):
+        t = annt_df.groupby('file').count()
+        t = set([luna_preprocess.get_file_id(x)
+                 for x in list(t[t.seriesuid>min_num_nodules].index)])
+        # len('_digest.npz') == 11
+        t1 = set([x[0:-11] for x in os.listdir(luna_preprocess._OUTPUT_DIR)])
+        # len('_dot.npz') == 8
+        t2 = set([x[0:-8] for x in os.listdir(_OUTPUT_DIR)])
+        return list(t.intersection(t1) - t2)
+
+    file_ids = sample_file_ids(1)
+
+    sigmas = util.get_dot_enhance_filter_sigmas(d0=3, d1=33, N=5)
+
+
+def pad_to_square(image_2d):
+    h, w = image_2d.shape
+    pad = abs(w - h) // 2
+    if h < w:
+        return np.pad(image_2d, ((pad, w - h - pad), (0, 0)), 'edge')
+    return np.pad(image_2d, ((0, 0), (pad, h - w - pad)), 'edge')
