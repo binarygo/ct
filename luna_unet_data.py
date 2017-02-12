@@ -58,6 +58,18 @@ def process_data_dir(data_dir):
         print 'Warning: skip %s'%data_dir
 
 
+def load_data(subsets):
+    images = []
+    nodule_masks = []
+    for subset in subsets:
+        data = np.load(os.path.join(_OUTPUT_DIR, '%s.npz'%subset))
+        images.append(data['images'].astype(np.float32))
+        nodule_masks.append(data['nodule_masks'].astype(np.float32))
+    images = np.concatenate(images)
+    nodule_masks = np.concatenate(nodule_masks)
+    return images, nodule_masks
+
+
 if __name__ == '__main__':
     data_dirs = sorted(glob(luna_preprocess._DATA_DIR))
     for data_dir in data_dirs:
