@@ -10,11 +10,10 @@ import luna_cropper
 import luna_preprocess
 
 
-_SEED = 12345
+_SEED = 123456789
 _CROP_HEIGHT = 96
 _CROP_WIDTH = 96
-_NUM_PATCHES = 5
-_NUM_AUG = 5
+_NUM_PATCHES = 10
 _OUTPUT_DIR = '../LUNA16/output_unet_data2'
 
 
@@ -26,7 +25,7 @@ def _make_aug(seed):
         random_state=np.random.RandomState(seed))
 
 
-def _sample_patches_impl(image, mask, image_aug=None, mask_aug=None):
+def _sample_patches(image, mask, image_aug=None, mask_aug=None):
     if image_aug:
         image = image_aug.apply(image)
 
@@ -42,23 +41,12 @@ def _sample_patches_impl(image, mask, image_aug=None, mask_aug=None):
             pos_ans.append(ans)
         ans = c.crop_neg()
         if ans is not None:
-            neg_ans.append(ans)
+            neg_ans.append(ans)            
     return pos_ans, neg_ans
 
 
-def _sample_patches(image, mask, image_aug, mask_aug):
-    pos_ans, neg_ans = _sample_patches_impl(image, mask, None, None)
-    for i in range(_NUM_AUG):
-        aug_pos_ans, aug_neg_ans = _sample_patches_impl(
-            image, mask, image_aug, mask_aug)
-        pos_ans += aug_pos_ans
-        neg_ans += aug_neg_ans
-    n = min(len(pos_ans), len(neg_ans))
-    return pos_ans[:n], neg_ans[:n]
-
-
 def process_data_dir(data_dir):
-    random_state = np.random.RandomState(_SEED)
+    random_state = np.random.RandomState(_SEED // 7)
     image_aug = _make_aug(_SEED)
     mask_aug = _make_aug(_SEED)
 
@@ -89,8 +77,12 @@ def process_data_dir(data_dir):
                 new_image = masked_lung[slice_z]
                 new_image = util.normalize(new_image, 0.0)
                 new_nodule_mask = nodule_mask[slice_z]
-                pos_ans, neg_ans = _sample_patches(
-                    new_image, new_nodule_mask, image_aug, mask_aug)
+                if random_state.randint(0, 2):
+                    pos_ans, neg_ans = _sample_patches(
+                        new_image, new_nodule_mask, None, None)
+                else:
+                    pos_ans, neg_ans = _sample_patches(
+                        new_image, new_nodule_mask, image_aug, mask_aug)
                 for t_image, t_nodule_mask in pos_ans:
                     out_images.append(t_image)
                     out_nodule_masks.append(t_nodule_mask)
@@ -104,10 +96,14 @@ def process_data_dir(data_dir):
         return
 
     perm_idxes = random_state.permutation(out_len)
+    out_images = np.stack(
+        [np.expand_dims(out_images[i], 0) for i in perm_idxes])
+    out_nodule_masks = np.stack(
+        [np.expand_dims(out_nodule_masks[i], 0) for i in perm_idxes])
+
     np.savez_compressed(
         os.path.join(_OUTPUT_DIR, os.path.basename(data_dir)),
-        images=[out_images[i] for i in perm_idxes],
-        nodule_masks=[out_nodule_masks[i] for i in perm_idxes])
+        images=out_images, nodule_masks=out_nodule_masks)
 
 
 def load_data(subsets):
@@ -115,9 +111,24 @@ def load_data(subsets):
     nodule_masks = []
     for subset in subsets:
         data = np.load(os.path.join(_OUTPUT_DIR, '%s.npz'%subset))
-        images.extend([x.astype(np.float32) for x in data['images']])
-        nodule_masks.extend([x.astype(np.float32) for x in data['nodule_masks']])
+        images.append(data['images'].astype(np.float32))
+        nodule_masks.append(data['nodule_masks'].astype(np.float32))
+    images = np.concatenate(images)
+    nodule_masks = np.concatenate(nodule_masks)
     return images, nodule_masks
+
+
+def get_images_mean_and_std(subsets):
+    acc_n = 0
+    acc_mean = 0.0
+    acc_var = 0.0
+    for subset in subsets:
+        images, nodule_masks = load_data([subset])
+        n = images.size
+        acc_n += n
+        acc_mean += np.mean(images) * n
+        acc_var += np.var(images) * n
+    return float(acc_mean) / acc_n, np.sqrt(float(acc_var) / acc_n)
 
 
 if __name__ == '__main__':

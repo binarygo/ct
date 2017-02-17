@@ -18,8 +18,8 @@ def rotate(image, angle):
     assert len(image.shape) == 2
 
     bg = image[0, 0]
-    return ndimage.rotate(image, angle=angle, mode='constant',
-                          cval=bg, reshape=True)
+    return ndimage.rotate(image, angle=angle, order=0,
+                          mode='constant', cval=bg, reshape=True)
 
 
 def zoom(image, factor):
@@ -29,7 +29,7 @@ def zoom(image, factor):
     h, w = image.shape
 
     return ndimage.interpolation.zoom(
-        image, zoom=[factor, factor], mode='constant', cval=bg)
+        image, zoom=[factor, factor], order=0, mode='constant', cval=bg)
 
 
 def rand_elastic_transform(image, alpha, sigma, random_state=None):
@@ -80,25 +80,34 @@ class ImageAug(object):
         # [a, b)
         return a + self._random_state.rand() * (b - a)
 
-    def apply(self, image):
+    def apply(self, image, debug=False):
         assert len(image.shape) == 2
 
-        all_seq = [self._ROTATE, self._ZOOM, self._ELASTIC]
-        all_seq = zip(all_seq, self._random_state.rand(len(all_seq)) >= 0.5)
-        self._seq = self._random_state.permutation([s for s, q in all_seq if q])
+        seq = self._random_state.permutation([self._ROTATE, self._ZOOM, self._ELASTIC])
+        seq_mask = int(self._rand(1, 2**len(seq)))
+        seq_mask = [bool(int(x)) for x in bin(seq_mask)[2:]]
+        print seq_mask
 
         ans = image
-        for s in self._seq:
+        trace = [ans]
+        for s, s_on in zip(seq, seq_mask):
+            if not s_on:
+                continue
             if s == self._ROTATE:
                 rotate_angle = self._rand(*self._rotate_angle_range)
                 ans = rotate(ans, rotate_angle)
+                trace.append((s, rotate_angle, ans))
             elif s == self._ZOOM:
                 zoom_factor = self._rand(*self._zoom_factor_range)
                 ans = zoom(ans, zoom_factor)
+                trace.append((s, zoom_factor, ans))
             elif s == self._ELASTIC:
                 ans = rand_elastic_transform(
                     ans,
                     alpha=self._elastic_alpha_sigma[0],
                     sigma=self._elastic_alpha_sigma[1],
                     random_state=self._random_state)
+                trace.append(ans)
+        if debug:
+            return ans, trace
         return ans
