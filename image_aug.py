@@ -86,7 +86,6 @@ class ImageAug(object):
         seq = self._random_state.permutation([self._ROTATE, self._ZOOM, self._ELASTIC])
         seq_mask = int(self._rand(1, 2**len(seq)))
         seq_mask = [bool(int(x)) for x in bin(seq_mask)[2:]]
-        print seq_mask
 
         ans = image
         trace = [ans]
