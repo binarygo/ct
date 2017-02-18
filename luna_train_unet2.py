@@ -91,7 +91,9 @@ def train_and_predict(use_existing):
     print('-'*30)
 
     imgs_train, imgs_mask_train = load_data(
-        ['subset0', 'subset1', 'subset2', 'subset3'])
+        ['subset0', 'subset1', 'subset2',
+         'subset3', 'subset4', 'subset5',
+         'subset6', 'subset7', 'subset8'])
     
     print('-'*30)
     print('Creating and compiling model...')

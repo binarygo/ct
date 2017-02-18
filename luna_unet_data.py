@@ -11,6 +11,23 @@ from glob import glob
 _OUTPUT_DIR = '../LUNA16/output_unet_data'
 
 
+def slice_image(masked_lung, nodule_mask, slice_z):
+    slice_z = np.clip(slice_z, 0, masked_lung.shape[0] - 1)
+    new_image = None
+    if masked_lung is not None:
+        new_image = masked_lung[slice_z]
+        new_image = transform.resize(
+            util.normalize(util.pad_to_square(new_image), 0.0),
+            [512, 512])
+    new_nodule_mask = None
+    if nodule_mask is not None:
+        new_nodule_mask = nodule_mask[slice_z]
+        new_nodule_mask = transform.resize(
+            util.pad_to_square(new_nodule_mask),
+            [512, 512])
+    return new_image, new_nodule_mask
+
+
 def process_data_dir(data_dir):
     out_images = []
     out_nodule_masks = []
@@ -35,15 +52,8 @@ def process_data_dir(data_dir):
             nod_v_x, nod_v_y, nod_v_z, nod_v_d = nodules[nod_idx]
             nodule_mask = nodule_masks[nod_idx]
             for z_offset in [-1, 0, 1]:
-                slice_z = np.clip(nod_v_z + z_offset, 0, masked_lung.shape[0] - 1)
-                new_image = masked_lung[slice_z]
-                new_image = transform.resize(
-                    util.normalize(util.pad_to_square(new_image), 0.0),
-                    [512, 512])
-                new_nodule_mask = nodule_mask[slice_z]
-                new_nodule_mask = transform.resize(
-                    util.pad_to_square(new_nodule_mask),
-                    [512, 512])
+                new_image, new_nodule_mask = slice_image(
+                    masked_lung, nodule_mask, nod_v_z + z_offset)
                 out_images.append(np.expand_dims(new_image, 0))
                 out_nodule_masks.append(np.expand_dims(new_nodule_mask, 0))
 
