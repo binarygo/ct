@@ -111,7 +111,7 @@ def train_and_predict(use_existing):
     print('Fitting model...')
     print('-'*30)
     model.fit(imgs_train, imgs_mask_train,
-              batch_size=32, nb_epoch=100, verbose=1, shuffle=True,
+              batch_size=16, nb_epoch=100, verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
 

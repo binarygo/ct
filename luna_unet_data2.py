@@ -50,12 +50,14 @@ def process_data_dir(data_dir):
     image_aug = _make_aug(_SEED)
     mask_aug = _make_aug(_SEED)
 
-    out_images = []
-    out_nodule_masks = []
+    pos_out_images = []
+    pos_out_nodule_masks = []
+    neg_out_images = []
+    neg_out_nodule_masks = []
     file_list = glob(os.path.join(data_dir, '*.mhd'))
     for i, f in enumerate(file_list):
         f_id = luna_preprocess.get_file_id(f)
-        print '========== process %s:%s of %d'%(data_dir, f_id, len(file_list))
+        print '========== process %s:%s: %d of %d'%(data_dir, f_id, i + 1, len(file_list))
         sys.stdout.flush()
 
         image = luna_preprocess.Image()
@@ -66,17 +68,16 @@ def process_data_dir(data_dir):
             continue
 
         masked_lung = image.masked_lung
-        nodule_masks = image._nodule_masks
+        all_nodule_mask = image._all_nodule_mask
 
         nodules = image.get_v_nodules()
         for nod_idx in range(len(nodules)):
             nod_v_x, nod_v_y, nod_v_z, nod_v_d = nodules[nod_idx]
-            nodule_mask = nodule_masks[nod_idx]
             for z_offset in [-1, 0, 1]:
                 slice_z = np.clip(nod_v_z + z_offset, 0, masked_lung.shape[0] - 1)
                 new_image = masked_lung[slice_z]
                 new_image = util.normalize(new_image, 0.0)
-                new_nodule_mask = nodule_mask[slice_z]
+                new_nodule_mask = all_nodule_mask[slice_z]
                 if random_state.randint(0, 2):
                     pos_ans, neg_ans = _sample_patches(
                         new_image, new_nodule_mask, None, None)
@@ -84,18 +85,24 @@ def process_data_dir(data_dir):
                     pos_ans, neg_ans = _sample_patches(
                         new_image, new_nodule_mask, image_aug, mask_aug)
                 for t_image, t_nodule_mask in pos_ans:
-                    out_images.append(t_image)
-                    out_nodule_masks.append(t_nodule_mask)
+                    pos_out_images.append(t_image)
+                    pos_out_nodule_masks.append(t_nodule_mask)
                 for t_image, t_nodule_mask in neg_ans:
-                    out_images.append(t_image)
-                    out_nodule_masks.append(t_nodule_mask)                    
+                    neg_out_images.append(t_image)
+                    neg_out_nodule_masks.append(t_nodule_mask)                    
 
-    out_len = len(out_images)
-    if out_len == 0 or out_len != len(out_nodule_masks):
+    assert len(pos_out_images)==len(pos_out_nodule_masks)
+    assert len(neg_out_images)==len(neg_out_nodule_masks)
+
+    out_len = min(len(pos_out_images), len(neg_out_images))
+    if out_len == 0:
         print 'Warning: skip %s'%data_dir
         return
 
-    perm_idxes = random_state.permutation(out_len)
+    out_images = pos_out_images[0:out_len] + neg_out_images[0:out_len]
+    out_nodule_masks = pos_out_nodule_masks[0:out_len] + neg_out_nodule_masks[0:out_len]
+
+    perm_idxes = random_state.permutation(2*out_len)
     out_images = np.stack(
         [np.expand_dims(out_images[i], 0) for i in perm_idxes])
     out_nodule_masks = np.stack(

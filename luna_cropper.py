@@ -13,11 +13,11 @@ class Cropper(object):
         self._ch, self._cw = crop_shape
         self._size = np.asarray([self._h, self._w], dtype=np.float)
         self._csize = np.asarray([self._ch, self._cw], dtype=np.float)
-        r = measure.regionprops(nodule_mask.astype(np.int))
-        if len(r) == 1:
-            self._nod_yx = np.asarray(r[0].centroid, dtype=np.float)
-        else:
-            self._nod_yx = None
+        nod_yxs = []
+        nodule_mask_labels = measure.label(nodule_mask)
+        for r in measure.regionprops(nodule_mask_labels):
+            nod_yxs.append(np.asarray(r.centroid, dtype=np.float))
+        self._nod_yxs = nod_yxs
 
         if random_state is None:
             random_state = np.random.RandomState(None)
@@ -46,14 +46,15 @@ class Cropper(object):
                 return image, nodule_mask
     
     def crop_pos(self):
-        if self._nod_yx is None:
+        if not self._nod_yxs:
             return
+        nod_yx_idx = self._random_state.randint(len(self._nod_yxs))
+        nod_yx = self._nod_yxs[nod_yx_idx]
         offset = self._random_state.rand(2)
         offset *= self._csize
-        yx = (self._nod_yx - offset)
+        yx = (nod_yx - offset)
         y, x = self._normalize_yx(yx)
         image = self._crop_impl(self._image, y, x)
         nodule_mask = self._crop_impl(self._nodule_mask, y, x)
-        if np.sum(np.abs(nodule_mask)) < 0.5:
-            return
-        return image, nodule_mask
+        if np.sum(np.abs(nodule_mask)) >= 0.5:
+            return image, nodule_mask

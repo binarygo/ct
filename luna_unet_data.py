@@ -34,7 +34,7 @@ def process_data_dir(data_dir):
     file_list = glob(os.path.join(data_dir, '*.mhd'))
     for i, f in enumerate(file_list):
         f_id = luna_preprocess.get_file_id(f)
-        print '========== process %s:%s of %d'%(data_dir, f_id, len(file_list))
+        print '========== process %s:%s: %d of %d'%(data_dir, f_id, i + 1, len(file_list))
         sys.stdout.flush()
 
         image = luna_preprocess.Image()

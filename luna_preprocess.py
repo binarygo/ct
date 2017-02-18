@@ -139,9 +139,13 @@ class Image(object):
 
     def _make_nodule_masks(self, nodules):
         nodule_masks = []
+        all_nodule_mask = np.zeros(self._image.shape, dtype=np.bool)
         for nodule in nodules:
-            nodule_masks.append(self._make_nodule_mask(nodule))
+            mask = self._make_nodule_mask(nodule)
+            nodule_masks.append(mask)
+            all_nodule_mask += mask
         self._nodule_masks = nodule_masks
+        self._all_nodule_mask = all_nodule_mask
 
     def get_v_nodules(self):
         self._assert_iso_spacing()
@@ -161,6 +165,10 @@ class Image(object):
     def masked_lung(self):
         return util.apply_mask(self._image, self._lung_mask)
         
+    @property
+    def masked_all_nodule(self):
+        return util.apply_mask(self._image, self._all_nodule_mask)
+
     def masked_nodule(self, nodule_idx):
         return util.apply_mask(self._image, self._nodule_masks[nodule_idx])
 
