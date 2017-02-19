@@ -14,7 +14,7 @@ class Cropper(object):
         self._size = np.asarray([self._h, self._w], dtype=np.float)
         self._csize = np.asarray([self._ch, self._cw], dtype=np.float)
         nod_yxs = []
-        nodule_mask_labels = measure.label(nodule_mask)
+        nodule_mask_labels = measure.label(nodule_mask>=0.5)
         for r in measure.regionprops(nodule_mask_labels):
             nod_yxs.append(np.asarray(r.centroid, dtype=np.float))
         self._nod_yxs = nod_yxs

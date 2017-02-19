@@ -78,7 +78,7 @@ def process_data_dir(data_dir):
                 new_image = masked_lung[slice_z]
                 new_image = util.normalize(new_image, 0.0)
                 new_nodule_mask = all_nodule_mask[slice_z]
-                if random_state.randint(0, 2):
+                if random_state.randint(2):
                     pos_ans, neg_ans = _sample_patches(
                         new_image, new_nodule_mask, None, None)
                 else:
