@@ -20,6 +20,8 @@ _IMAGE_COLS = 96
 _IMAGES_MEAN = 0.179802
 _IMAGES_STD = 0.269416
 
+_BATCH_SIZE = 2
+
 _SMOOTH = 1.
 
 
@@ -113,7 +115,7 @@ def train_and_predict(use_existing):
     print('Fitting model...')
     print('-'*30)
     model.fit(imgs_train, imgs_mask_train,
-              batch_size=2, nb_epoch=100, verbose=1, shuffle=True,
+              batch_size=_BATCH_SIZE, nb_epoch=100, verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
 

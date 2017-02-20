@@ -14,6 +14,7 @@ _SEED = 123456789
 _CROP_HEIGHT = 96
 _CROP_WIDTH = 96
 _NUM_PATCHES = 10
+_NUM_RAND_SLICES = 1
 _OUTPUT_DIR = '../LUNA16/output_unet_data2'
 
 
@@ -89,7 +90,7 @@ def process_data_dir(data_dir):
             for z_offset in [-1, 0, 1]:
                 slice_zs.append(nod_v_z + z_offset)
         # random sample slices
-        for _ in range(1):
+        for _ in range(_NUM_RAND_SLICES):
             slice_zs.append(random_state.randint(len(masked_lung)))
         slice_zs = list(set(slice_zs))
 
