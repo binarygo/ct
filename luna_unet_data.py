@@ -13,18 +13,19 @@ _OUTPUT_DIR = '../LUNA16/output_unet_data'
 
 def slice_image(masked_lung, nodule_mask, slice_z):
     slice_z = np.clip(slice_z, 0, masked_lung.shape[0] - 1)
-    new_image = None
-    if masked_lung is not None:
-        new_image = masked_lung[slice_z]
-        new_image = transform.resize(
-            util.normalize(util.pad_to_square(new_image), 0.0),
-            [512, 512])
+
+    new_image = masked_lung[slice_z]
+    new_image = transform.resize(
+        util.normalize(util.pad_to_square(new_image), 0.0),
+        [512, 512])
     new_nodule_mask = None
+
     if nodule_mask is not None:
         new_nodule_mask = nodule_mask[slice_z]
         new_nodule_mask = transform.resize(
             util.pad_to_square(new_nodule_mask),
             [512, 512])
+
     return new_image, new_nodule_mask
 
 

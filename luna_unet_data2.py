@@ -25,6 +25,19 @@ def _make_aug(seed):
         random_state=np.random.RandomState(seed))
 
 
+def slice_image(masked_lung, nodule_mask, slice_z):
+    slice_z = np.clip(slice_z, 0, masked_lung.shape[0] - 1)
+
+    new_image = masked_lung[slice_z]
+    new_image = util.normalize(new_image, 0.0)
+
+    new_nodule_mask = None
+    if nodule_mask is not None:
+        new_nodule_mask = nodule_mask[slice_z]
+
+    return new_image, new_nodule_mask
+
+
 def _sample_patches(image, mask, image_aug=None, mask_aug=None):
     if image_aug:
         image = image_aug.apply(image)
@@ -50,10 +63,8 @@ def process_data_dir(data_dir):
     image_aug = _make_aug(_SEED)
     mask_aug = _make_aug(_SEED)
 
-    pos_out_images = []
-    pos_out_nodule_masks = []
-    neg_out_images = []
-    neg_out_nodule_masks = []
+    pos_out = []
+    neg_out = []
     file_list = glob(os.path.join(data_dir, '*.mhd'))
     for i, f in enumerate(file_list):
         f_id = luna_preprocess.get_file_id(f)
@@ -71,42 +82,53 @@ def process_data_dir(data_dir):
         all_nodule_mask = image._all_nodule_mask
 
         nodules = image.get_v_nodules()
+        slice_zs = []
+        # sample nodule slices
         for nod_idx in range(len(nodules)):
             nod_v_x, nod_v_y, nod_v_z, nod_v_d = nodules[nod_idx]
             for z_offset in [-1, 0, 1]:
-                slice_z = np.clip(nod_v_z + z_offset, 0, masked_lung.shape[0] - 1)
-                new_image = masked_lung[slice_z]
-                new_image = util.normalize(new_image, 0.0)
-                new_nodule_mask = all_nodule_mask[slice_z]
-                if random_state.randint(2):
-                    pos_ans, neg_ans = _sample_patches(
-                        new_image, new_nodule_mask, None, None)
-                else:
-                    pos_ans, neg_ans = _sample_patches(
-                        new_image, new_nodule_mask, image_aug, mask_aug)
-                for t_image, t_nodule_mask in pos_ans:
-                    pos_out_images.append(t_image)
-                    pos_out_nodule_masks.append(t_nodule_mask)
-                for t_image, t_nodule_mask in neg_ans:
-                    neg_out_images.append(t_image)
-                    neg_out_nodule_masks.append(t_nodule_mask)                    
+                slice_zs.append(nod_v_z + z_offset)
+        # random sample slices
+        for _ in range(1):
+            slice_zs.append(random_state.randint(len(masked_lung)))
+        slice_zs = list(set(slice_zs))
 
-    assert len(pos_out_images)==len(pos_out_nodule_masks)
-    assert len(neg_out_images)==len(neg_out_nodule_masks)
+        for slice_z in slice_zs:
+            new_image, new_nodule_mask = slice_image(
+                masked_lung, all_nodule_mask, slice_z)
+            if random_state.randint(2):  # 50% prob
+                pos_ans, neg_ans = _sample_patches(
+                    new_image, new_nodule_mask, None, None)
+            else:
+                pos_ans, neg_ans = _sample_patches(
+                    new_image, new_nodule_mask, image_aug, mask_aug)
+            pos_out.extend(pos_ans)
+            neg_out.extend(neg_ans)
 
-    out_len = min(len(pos_out_images), len(neg_out_images))
+    print '# pos = %d'%len(pos_out)
+    print '# neg = %d'%len(neg_out)
+
+    out_len = min(len(pos_out), len(neg_out))
     if out_len == 0:
         print 'Warning: skip %s'%data_dir
         return
 
-    out_images = pos_out_images[0:out_len] + neg_out_images[0:out_len]
-    out_nodule_masks = pos_out_nodule_masks[0:out_len] + neg_out_nodule_masks[0:out_len]
+    def shuffle(arr, num=None):
+        if num is None:
+            num = len(arr)
+        perm_idxes = random_state.permutation(len(arr))[0:num]
+        return [arr[i] for i in perm_idxes]
+        
+    pos_out = shuffle(pos_out, out_len)
+    neg_out = shuffle(neg_out, out_len)
 
-    perm_idxes = random_state.permutation(2*out_len)
-    out_images = np.stack(
-        [np.expand_dims(out_images[i], 0) for i in perm_idxes])
-    out_nodule_masks = np.stack(
-        [np.expand_dims(out_nodule_masks[i], 0) for i in perm_idxes])
+    out_images = []
+    out_nodule_masks = []
+    for t_image, t_nodule_mask in shuffle(pos_out + neg_out):
+        out_images.append(np.expand_dims(t_image, 0))
+        out_nodule_masks.append(np.expand_dims(t_nodule_mask, 0))
+    out_images = np.stack(out_images)
+    out_nodule_masks = np.stack(out_nodule_masks)
 
     np.savez_compressed(
         os.path.join(_OUTPUT_DIR, os.path.basename(data_dir)),
@@ -141,5 +163,6 @@ def get_images_mean_and_std(subsets):
 if __name__ == '__main__':
     data_dirs = sorted(glob(luna_preprocess._DATA_DIR))
     for data_dir in data_dirs:
+        print '========== process %s'%data_dir
         process_data_dir(data_dir)
     print 'Done'

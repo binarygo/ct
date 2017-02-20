@@ -94,11 +94,13 @@ def train_and_predict(use_existing):
         ['subset0', 'subset1', 'subset2',
          'subset3', 'subset4', 'subset5',
          'subset6', 'subset7', 'subset8'])
-    
+#    imgs_train, imgs_mask_train = load_data(['subset0'])
+
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
-    model = get_unet()
+    with tf.device('/gpu:0'):
+        model = get_unet()
     # Saving weights to unet2.hdf5 at checkpoints
     model_checkpoint = ModelCheckpoint('unet2.hdf5', monitor='loss', save_best_only=True)
     #
@@ -111,10 +113,9 @@ def train_and_predict(use_existing):
     print('Fitting model...')
     print('-'*30)
     model.fit(imgs_train, imgs_mask_train,
-              batch_size=16, nb_epoch=100, verbose=1, shuffle=True,
+              batch_size=2, nb_epoch=100, verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
 
 if __name__ == '__main__':
-    with tf.device('/cpu:0'):
-        train_and_predict(True)
+    train_and_predict(True)
