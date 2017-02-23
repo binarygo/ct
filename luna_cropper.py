@@ -27,14 +27,12 @@ class Cropper(object):
         return image_aug.crop(hero, (y, x), [self._ch, self._cw])
 
     def _normalize_yx(self, yx):
-        yx = np.minimum(np.maximum(yx, [0, 0]), [self._h, self._w])
+        yx = np.minimum(np.maximum(yx, [0, 0]), [self._h-1, self._w-1])
         return yx.astype(np.int)
 
     def crop(self):
-        f = 0.2
-        offset = self._random_state.rand(2)
-        offset *= (self._size - (1.0 - 2.0 * f) * self._csize)
-        yx = -f * self._size + offset
+        yx_max = np.maximum([0, 0], self._size - self._csize)
+        yx = yx_max * self._random_state.rand(2)
         y, x = self._normalize_yx(yx)
         return (self._crop_impl(self._image, y, x),
                 self._crop_impl(self._nodule_mask, y, x))
@@ -45,14 +43,17 @@ class Cropper(object):
             if np.sum(np.abs(nodule_mask)) < 0.5:
                 return image, nodule_mask
     
-    def crop_pos(self):
-        if not self._nod_yxs:
-            return
-        nod_yx_idx = self._random_state.randint(len(self._nod_yxs))
-        nod_yx = self._nod_yxs[nod_yx_idx]
-        offset = self._random_state.rand(2)
-        offset *= self._csize
-        yx = (nod_yx - offset)
+    def crop_pos(self, nod_yx=None):
+        if nod_yx is None:
+            if not self._nod_yxs:
+                return
+            nod_idx = self._random_state.randint(len(self._nod_yxs))
+            nod_yx = self._nod_yxs[nod_idx]
+        yx_min = np.maximum([0, 0], nod_yx - self._csize)
+        yx_max = np.maximum([0, 0], self._size - self._csize)
+        yx_max = np.minimum(yx_max, nod_yx)
+        yx_max = np.maximum(yx_max, yx_min)
+        yx = yx_min + (yx_max - yx_min) * self._random_state.rand(2)
         y, x = self._normalize_yx(yx)
         image = self._crop_impl(self._image, y, x)
         nodule_mask = self._crop_impl(self._nodule_mask, y, x)

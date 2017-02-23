@@ -20,7 +20,7 @@ _IMAGE_COLS = 96
 _IMAGES_MEAN = 0.179802
 _IMAGES_STD = 0.269416
 
-_BATCH_SIZE = 2
+_BATCH_SIZE = 32
 
 _SMOOTH = 1.
 
@@ -101,7 +101,7 @@ def train_and_predict(use_existing):
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
-    with tf.device('/gpu:0'):
+    with tf.device('/cpu:0'):
         model = get_unet()
     # Saving weights to unet2.hdf5 at checkpoints
     model_checkpoint = ModelCheckpoint('unet2.hdf5', monitor='loss', save_best_only=True)
@@ -120,4 +120,4 @@ def train_and_predict(use_existing):
 
 
 if __name__ == '__main__':
-    train_and_predict(True)
+    train_and_predict(False)

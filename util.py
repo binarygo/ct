@@ -437,3 +437,17 @@ def pad_to_square(image):
     if h < w:
         return np.pad(image, ((pad, w - h - pad), (0, 0)), 'edge')
     return np.pad(image, ((0, 0), (pad, h - w - pad)), 'edge')
+
+
+def clip_dim0(image, z):
+    assert len(image.shape) == 3
+    return np.clip(z, 0, image.shape[0] - 1)
+
+
+def shuffle(arr, max_n=None, random_state=None):
+    if random_state is None:
+        random_state = np.random.RandomState()
+    if max_n is None:
+        max_n = len(arr)
+    perm_idxes = random_state.permutation(len(arr))[0:max_n]
+    return [arr[i] for i in perm_idxes]

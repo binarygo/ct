@@ -1,4 +1,5 @@
 import numpy as np
+from skimage import transform
 from scipy import ndimage
 from scipy.ndimage.filters import gaussian_filter
 
@@ -9,8 +10,9 @@ def crop(image, crop_yx, crop_size):
     h, w = image.shape
     y, x = crop_yx
     ch, cw = crop_size
+    ph, pw = max(0,y+ch-h), max(0,x+cw-w)
     return np.pad(image[y:y+ch, x:x+cw],
-                  ((0, max(0,y+ch-h)), (0, max(0,x+cw-w))),
+                  ((ph//2, ph-ph//2), (pw//2, pw-pw//2)),
                   mode='constant', constant_values=bg)
 
 
@@ -30,6 +32,13 @@ def zoom(image, factor):
 
     return ndimage.interpolation.zoom(
         image, zoom=[factor, factor], order=0, mode='constant', cval=bg)
+
+
+def resize(image, new_size):
+    assert len(image.shape) == 2
+
+    bg = image[0, 0]
+    return transform.resize(image, new_size, order=0, mode='constant', cval=bg)
 
 
 def rand_elastic_transform(image, alpha, sigma, random_state=None):

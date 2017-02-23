@@ -27,8 +27,6 @@ def _make_aug(seed):
 
 
 def slice_image(masked_lung, nodule_mask, slice_z):
-    slice_z = np.clip(slice_z, 0, masked_lung.shape[0] - 1)
-
     new_image = masked_lung[slice_z]
     new_image = util.normalize(new_image, 0.0)
 
@@ -88,7 +86,7 @@ def process_data_dir(data_dir):
         for nod_idx in range(len(nodules)):
             nod_v_x, nod_v_y, nod_v_z, nod_v_d = nodules[nod_idx]
             for z_offset in [-1, 0, 1]:
-                slice_zs.append(nod_v_z + z_offset)
+                slice_zs.append(util.clip_dim0(masked_lung, nod_v_z + z_offset))
         # random sample slices
         for _ in range(_NUM_RAND_SLICES):
             slice_zs.append(random_state.randint(len(masked_lung)))
@@ -114,18 +112,13 @@ def process_data_dir(data_dir):
         print 'Warning: skip %s'%data_dir
         return
 
-    def shuffle(arr, num=None):
-        if num is None:
-            num = len(arr)
-        perm_idxes = random_state.permutation(len(arr))[0:num]
-        return [arr[i] for i in perm_idxes]
-        
-    pos_out = shuffle(pos_out, out_len)
-    neg_out = shuffle(neg_out, out_len)
+    pos_out = util.shuffle(pos_out, out_len, random_state)
+    neg_out = util.shuffle(neg_out, out_len, random_state)
+    all_out = util.shuffle(pos_out + neg_out, None, random_state)
 
     out_images = []
     out_nodule_masks = []
-    for t_image, t_nodule_mask in shuffle(pos_out + neg_out):
+    for t_image, t_nodule_mask in all_out:
         out_images.append(np.expand_dims(t_image, 0))
         out_nodule_masks.append(np.expand_dims(t_nodule_mask, 0))
     out_images = np.stack(out_images)

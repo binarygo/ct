@@ -1,9 +1,9 @@
 import os
 import sys
 import numpy as np
-from skimage import transform
 
 import util
+import image_aug
 import luna_preprocess
 from glob import glob
 
@@ -12,17 +12,15 @@ _OUTPUT_DIR = '../LUNA16/output_unet_data'
 
 
 def slice_image(masked_lung, nodule_mask, slice_z):
-    slice_z = np.clip(slice_z, 0, masked_lung.shape[0] - 1)
-
     new_image = masked_lung[slice_z]
-    new_image = transform.resize(
+    new_image = image_aug.resize(
         util.normalize(util.pad_to_square(new_image), 0.0),
         [512, 512])
-    new_nodule_mask = None
 
+    new_nodule_mask = None
     if nodule_mask is not None:
         new_nodule_mask = nodule_mask[slice_z]
-        new_nodule_mask = transform.resize(
+        new_nodule_mask = image_aug.resize(
             util.pad_to_square(new_nodule_mask),
             [512, 512])
 
@@ -46,17 +44,20 @@ def process_data_dir(data_dir):
             continue
 
         masked_lung = image.masked_lung
-        nodule_masks = image._nodule_masks
+        all_nodule_mask = image._all_nodule_mask
 
         nodules = image.get_v_nodules()
+        slice_zs = []
         for nod_idx in range(len(nodules)):
             nod_v_x, nod_v_y, nod_v_z, nod_v_d = nodules[nod_idx]
-            nodule_mask = nodule_masks[nod_idx]
             for z_offset in [-1, 0, 1]:
-                new_image, new_nodule_mask = slice_image(
-                    masked_lung, nodule_mask, nod_v_z + z_offset)
-                out_images.append(np.expand_dims(new_image, 0))
-                out_nodule_masks.append(np.expand_dims(new_nodule_mask, 0))
+                slice_zs.append(util.clip_dim0(masked_lung, nod_v_z + z_offset))
+
+        for slice_z in slice_zs:
+            new_image, new_nodule_mask = slice_image(
+                masked_lung, all_nodule_mask, slice_z)
+            out_images.append(np.expand_dims(new_image, 0))
+            out_nodule_masks.append(np.expand_dims(new_nodule_mask, 0))
 
     if len(out_images) > 0 and len(out_nodule_masks) > 0:
         final_images = np.stack(out_images)
