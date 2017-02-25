@@ -1,22 +1,20 @@
 import os
 import sys
 import numpy as np
-from skimage import transform
-from glob import glob
 
 import util
 import image_aug
 import luna_util
-import luna_cropper
 import luna_preprocess
+from glob import glob
 
 
 _SEED = 123456789
-_CROP_HEIGHT = 96
-_CROP_WIDTH = 96
-_NUM_PATCHES = 10
-_NUM_RAND_SLICES = 1
-_OUTPUT_DIR = '../LUNA16/output_unet_data2'
+_HEIGHT = 512
+_WIDTH = 512
+_NUM_RAND_SLICES = 5
+_NUM_AUG = 1
+_OUTPUT_DIR = '../LUNA16/output_unet_data1'
 
 
 def _make_aug(seed):
@@ -27,21 +25,40 @@ def _make_aug(seed):
         random_state=np.random.RandomState(seed))
 
 
-def _sample_patches(image, mask, lung_aug=None, mask_aug=None):
+def _transform(image, mask):
+    try:
+        bbox = util.find_bbox(image, margin=[2,2], bg=image[0,0])
+        image = image[bbox]
+        mask = mask[bbox]
+    except:
+        pass
+
+    image = util.pad_to_square(image)
+    mask = util.pad_to_square(mask)
+
+    scale_factor = np.asarray([_HEIGHT, _WIDTH], dtype=np.float32) / image.shape
+
+    image = image_aug.resize(image, [_HEIGHT, _WIDTH])
+    mask = image_aug.resize(mask, [_HEIGHT, _WIDTH])    
+    return image, mask, scale_factor
+
+
+def _sample(image, mask, lung_aug=None, mask_aug=None):
+    pos_ans = []
+    neg_ans = []
+
     if lung_aug and mask_aug:
         image = lung_aug.apply(image)
         mask = mask_aug.apply(mask)
-        
-    pos_ans = []
-    neg_ans = []
-    c = luna_cropper.Cropper(image, mask, [_CROP_HEIGHT, _CROP_WIDTH])
-    for i in range(_NUM_PATCHES):
-        ans = c.crop_pos()
-        if ans is not None:
-            pos_ans.append(ans)
-        ans = c.crop_neg()
-        if ans is not None:
-            neg_ans.append(ans)            
+
+    image, mask, scale_factor = _transform(image, mask)
+    #if np.min(scale_factor) > 5:
+    #    return pos_ans, neg_ans
+
+    if util.is_pos_mask(mask):
+        pos_ans.append((image, mask, scale_factor))
+    else:
+        neg_ans.append((image, mask, scale_factor))
     return pos_ans, neg_ans
 
 
@@ -83,14 +100,17 @@ def process_data_dir(data_dir):
         for slice_z in slice_zs:
             new_image, new_nodule_mask = luna_util.slice_image(
                 masked_lung, all_nodule_mask, slice_z)
-            if random_state.randint(2):  # 50% prob
-                pos_ans, neg_ans = _sample_patches(
-                    new_image, new_nodule_mask, None, None)
-            else:
-                pos_ans, neg_ans = _sample_patches(
-                    new_image, new_nodule_mask, lung_aug, mask_aug)
+            # Original
+            pos_ans, neg_ans = _sample(
+                new_image, new_nodule_mask, None, None)
             pos_out.extend(pos_ans)
             neg_out.extend(neg_ans)
+            # Aug
+            for _ in range(_NUM_AUG):
+                pos_ans, neg_ans = _sample(
+                    new_image, new_nodule_mask, lung_aug, mask_aug)
+                pos_out.extend(pos_ans)
+                neg_out.extend(neg_ans)
 
     all_out = luna_util.shuffle_out(pos_out, neg_out, random_state)
     if len(all_out) == 0:
@@ -99,45 +119,39 @@ def process_data_dir(data_dir):
 
     out_images = []
     out_nodule_masks = []
-    for t_image, t_nodule_mask in all_out:
+    out_scale_factors = []
+    for t_image, t_nodule_mask, t_scale_factor in all_out:
         out_images.append(np.expand_dims(t_image, 0))
         out_nodule_masks.append(np.expand_dims(t_nodule_mask, 0))
+        out_scale_factors.append(t_scale_factor)
     out_images = np.stack(out_images)
     out_nodule_masks = np.stack(out_nodule_masks)
+    out_scale_factors = np.stack(out_scale_factors)
 
     np.savez_compressed(
         os.path.join(_OUTPUT_DIR, os.path.basename(data_dir)),
-        images=out_images, nodule_masks=out_nodule_masks)    
+        images=out_images,
+        nodule_masks=out_nodule_masks,
+        scale_factors=out_scale_factors)    
 
 
 def load_data(subsets):
     images = []
     nodule_masks = []
+    scale_factors = []
     for subset in subsets:
         data = np.load(os.path.join(_OUTPUT_DIR, '%s.npz'%subset))
         images.append(data['images'].astype(np.float32))
         nodule_masks.append(data['nodule_masks'].astype(np.float32))
+        scale_factors.append(data['scale_factors'].astype(np.float32))
     images = np.concatenate(images)
     nodule_masks = np.concatenate(nodule_masks)
-    return images, nodule_masks
-
-
-def get_images_mean_and_std(subsets):
-    acc_n = 0
-    acc_mean = 0.0
-    acc_var = 0.0
-    for subset in subsets:
-        images, nodule_masks = load_data([subset])
-        n = images.size
-        acc_n += n
-        acc_mean += np.mean(images) * n
-        acc_var += np.var(images) * n
-    return float(acc_mean) / acc_n, np.sqrt(float(acc_var) / acc_n)
+    scale_factors = np.concatenate(scale_factors)
+    return images, nodule_masks, scale_factors
 
 
 if __name__ == '__main__':
     data_dirs = sorted(glob(luna_preprocess._DATA_DIR))
     for data_dir in data_dirs:
-        print '========== process %s'%data_dir
         process_data_dir(data_dir)
     print 'Done'

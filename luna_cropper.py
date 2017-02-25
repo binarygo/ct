@@ -1,6 +1,7 @@
 import numpy as np
 from skimage import measure
 
+import util
 import image_aug
 
 
@@ -14,7 +15,7 @@ class Cropper(object):
         self._size = np.asarray([self._h, self._w], dtype=np.float)
         self._csize = np.asarray([self._ch, self._cw], dtype=np.float)
         nod_yxs = []
-        nodule_mask_labels = measure.label(nodule_mask>=0.5)
+        nodule_mask_labels = measure.label(util.to_bool_mask(nodule_mask))
         for r in measure.regionprops(nodule_mask_labels):
             nod_yxs.append(np.asarray(r.centroid, dtype=np.float))
         self._nod_yxs = nod_yxs
@@ -40,7 +41,7 @@ class Cropper(object):
     def crop_neg(self):
         for i in range(1000):
             image, nodule_mask = self.crop()
-            if np.sum(np.abs(nodule_mask)) < 0.5:
+            if not util.is_pos_mask(nodule_mask):
                 return image, nodule_mask
     
     def crop_pos(self, nod_yx=None):
@@ -57,5 +58,5 @@ class Cropper(object):
         y, x = self._normalize_yx(yx)
         image = self._crop_impl(self._image, y, x)
         nodule_mask = self._crop_impl(self._nodule_mask, y, x)
-        if np.sum(np.abs(nodule_mask)) >= 0.5:
+        if util.is_pos_mask(nodule_mask):
             return image, nodule_mask

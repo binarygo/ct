@@ -429,14 +429,32 @@ def get_dot_enhance_filter_sigmas(d0, d1, N=5):
     return sigmas
 
 
+
+def clip_and_pad(image, new_shape):
+    assert len(image.shape)==2
+
+    bg = image[0, 0]
+
+    h, w = image.shape
+    new_h, new_w = new_shape
+    
+    ph = max(0, h-new_h)
+    pw = max(0, w-new_w)
+    image = image[ph//2:(h-(ph-ph//2)), pw//2:(w-(pw-pw//2))]
+    
+    h, w = image.shape
+    ph = new_h-h
+    pw = new_w-w
+    image = np.pad(image, ((ph//2, ph-ph//2), (pw//2, pw-pw//2)),
+                   mode='constant', constant_values=bg)
+    return image
+
+
 def pad_to_square(image):
     assert len(image.shape)==2
 
     h, w = image.shape
-    pad = abs(w - h) // 2
-    if h < w:
-        return np.pad(image, ((pad, w - h - pad), (0, 0)), 'edge')
-    return np.pad(image, ((0, 0), (pad, h - w - pad)), 'edge')
+    return clip_and_pad(image, (max(h, w), max(h, w)))
 
 
 def clip_dim0(image, z):
@@ -451,3 +469,11 @@ def shuffle(arr, max_n=None, random_state=None):
         max_n = len(arr)
     perm_idxes = random_state.permutation(len(arr))[0:max_n]
     return [arr[i] for i in perm_idxes]
+
+
+def to_bool_mask(mask):
+    return mask>=0.5
+
+
+def is_pos_mask(mask):
+    return np.sum(to_bool_mask(mask))>=0.5

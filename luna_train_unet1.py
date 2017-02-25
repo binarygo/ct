@@ -9,10 +9,10 @@ from keras.optimizers import SGD
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
 from keras import backend as K
 
-import luna_unet_data
+import luna_unet_data1
 
 
-_DATA_DIR = '../LUNA16/output_unet_data'
+_DATA_DIR = '../LUNA16/output_unet_data1'
 
 _IMAGE_ROWS = 512
 _IMAGE_COLS = 512
@@ -87,16 +87,14 @@ def get_unet():
     return model
 
 
-        
-
 def train_and_predict(use_existing):
     print('-'*30)
     print('Loading and preprocessing train data...')
     print('-'*30)
 
-    imgs_train, imgs_mask_train = luna_unet_data.load_data(['subset0'])
-
-    imgs_test, imgs_mask_test_true = luna_unet_data.load_data(['subset1'])
+    (imgs_train,
+     imgs_mask_train,
+     scale_factors_train) = luna_unet_data1.load_data(['subset0'])
     
     mean = np.mean(imgs_train)  # mean for data centering
     std = np.std(imgs_train)  # std for data normalization
