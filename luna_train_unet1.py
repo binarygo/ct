@@ -1,4 +1,4 @@
-import os
+1import os
 
 import numpy as np
 import tensorflow as tf
@@ -16,6 +16,12 @@ _DATA_DIR = '../LUNA16/output_unet_data1'
 
 _IMAGE_ROWS = 512
 _IMAGE_COLS = 512
+
+_IMAGES_MEAN = 0.150
+_IMAGES_STD = 0.266
+
+_BATCH_SIZE = 32
+_NUM_EPOCHS = 100
 
 _SMOOTH = 1.
 
@@ -87,68 +93,47 @@ def get_unet():
     return model
 
 
+def normalize_images(images):
+    return (images - _IMAGES_MEAN) / _IMAGES_STD
+
+
+def load_data(subsets):
+    images, nodule_masks, scale_factors = luna_unet_data1.load_data(subsets)
+    images = normalize_images(images)
+    return images, nodule_masks, scale_factors
+
+
 def train_and_predict(use_existing):
     print('-'*30)
     print('Loading and preprocessing train data...')
     print('-'*30)
 
-    (imgs_train,
-     imgs_mask_train,
-     scale_factors_train) = luna_unet_data1.load_data(['subset0'])
+    imgs_train, imgs_mask_train, imgs_scale_factor_train = load_data(
+        ['subset0', 'subset1', 'subset2',
+         'subset3', 'subset4', 'subset5',
+         'subset6', 'subset7', 'subset8'])
     
-    mean = np.mean(imgs_train)  # mean for data centering
-    std = np.std(imgs_train)  # std for data normalization
-
-    imgs_train -= mean
-    imgs_train /= std
-
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
     model = get_unet()
-    # Saving weights to unet.hdf5 at checkpoints
-    model_checkpoint = ModelCheckpoint('unet.hdf5', monitor='loss', save_best_only=True)
+    # Saving weights to unet1.hdf5 at checkpoints
+    model_checkpoint = ModelCheckpoint('unet1.hdf5', monitor='loss', save_best_only=True)
     #
     # Should we load existing weights? 
     # Set argument for call to train_and_predict to true at end of script
     if use_existing:
-        model.load_weights('./unet.hdf5')
+        model.load_weights('./unet1.hdf5')
         
-    # 
-    # The final results for this tutorial were produced using a multi-GPU
-    # machine using TitanX's.
-    # For a home GPU computation benchmark, on my home set up with a GTX970 
-    # I was able to run 20 epochs with a training set size of 320 and 
-    # batch size of 2 in about an hour. I started getting reseasonable masks 
-    # after about 3 hours of training. 
-    #
     print('-'*30)
     print('Fitting model...')
     print('-'*30)
-    model.fit(imgs_train, imgs_mask_train, batch_size=2, nb_epoch=100, verbose=1, shuffle=True,
+    model.fit(imgs_train, imgs_mask_train,
+              batch_size=_BATCH_SIZE, nb_epoch=_NUM_EPOCHS,
+              verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
-    # loading best weights from training session
-    print('-'*30)
-    print('Loading saved weights...')
-    print('-'*30)
-    model.load_weights('./unet.hdf5')
-
-    print('-'*30)
-    print('Predicting masks on test data...')
-    print('-'*30)
-    num_test = len(imgs_test)
-    imgs_mask_test = np.ndarray([num_test,1,512,512],dtype=np.float32)
-    for i in range(num_test):
-        imgs_mask_test[i] = model.predict([imgs_test[i:i+1]], verbose=0)[0]
-    np.save('masksTestPredicted.npy', imgs_mask_test)
-    mean = 0.0
-    for i in range(num_test):
-        mean+=dice_coef_np(imgs_mask_test_true[i,0], imgs_mask_test[i,0])
-    mean/=num_test
-    print("Mean Dice Coeff : ", mean)
 
 if __name__ == '__main__':
     with tf.device('/cpu:0'):
-        train_and_predict(True)
-
+        train_and_predict(False)

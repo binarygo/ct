@@ -17,10 +17,11 @@ _DATA_DIR = '../LUNA16/output_unet_data2'
 _IMAGE_ROWS = 96
 _IMAGE_COLS = 96
 
-_IMAGES_MEAN = 0.179802
-_IMAGES_STD = 0.269416
+_IMAGES_MEAN = 0.180
+_IMAGES_STD = 0.270
 
 _BATCH_SIZE = 32
+_NUM_EPOCHS = 100
 
 _SMOOTH = 1.
 
@@ -100,8 +101,7 @@ def train_and_predict(use_existing):
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
-    with tf.device('/cpu:0'):
-        model = get_unet()
+    model = get_unet()
     # Saving weights to unet2.hdf5 at checkpoints
     model_checkpoint = ModelCheckpoint('unet2.hdf5', monitor='loss', save_best_only=True)
     #
@@ -114,9 +114,11 @@ def train_and_predict(use_existing):
     print('Fitting model...')
     print('-'*30)
     model.fit(imgs_train, imgs_mask_train,
-              batch_size=_BATCH_SIZE, nb_epoch=100, verbose=1, shuffle=True,
+              batch_size=_BATCH_SIZE, nb_epoch=_NUM_EPOCHS,
+              verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
 
 if __name__ == '__main__':
-    train_and_predict(True)
+    with tf.device('/cpu:0'):
+        train_and_predict(True)
