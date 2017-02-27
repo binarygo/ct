@@ -12,11 +12,11 @@ import luna_preprocess
 
 
 _SEED = 123456789
-_CROP_HEIGHT = 96
-_CROP_WIDTH = 96
-_NUM_PATCHES = 10
-_NUM_RAND_SLICES = 1
-_OUTPUT_DIR = '../LUNA16/output_unet_data2'
+_CROP_HEIGHT = 256
+_CROP_WIDTH = 256
+_NUM_PATCHES = 2
+_NUM_RAND_SLICES = 4
+_OUTPUT_DIR = '../LUNA16/output_unet_data3'
 
 
 def _make_aug(seed):
@@ -131,4 +131,5 @@ if __name__ == '__main__':
     for data_dir in data_dirs:
         print '========== process %s'%data_dir
         process_data_dir(data_dir)
+        break
     print 'Done'

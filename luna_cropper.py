@@ -36,13 +36,14 @@ class Cropper(object):
         yx = yx_max * self._random_state.rand(2)
         y, x = self._normalize_yx(yx)
         return (self._crop_impl(self._image, y, x),
-                self._crop_impl(self._nodule_mask, y, x))
+                self._crop_impl(self._nodule_mask, y, x),
+                (y, x))
     
     def crop_neg(self):
         for i in range(1000):
-            image, nodule_mask = self.crop()
+            image, nodule_mask, yx = self.crop()
             if not util.is_pos_mask(nodule_mask):
-                return image, nodule_mask
+                return image, nodule_mask, yx
     
     def crop_pos(self, nod_yx=None):
         if nod_yx is None:
@@ -59,4 +60,4 @@ class Cropper(object):
         image = self._crop_impl(self._image, y, x)
         nodule_mask = self._crop_impl(self._nodule_mask, y, x)
         if util.is_pos_mask(nodule_mask):
-            return image, nodule_mask
+            return image, nodule_mask, (y,x)
