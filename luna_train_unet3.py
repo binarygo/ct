@@ -100,7 +100,8 @@ def train_and_predict(use_existing):
     print('Loading and preprocessing train data...')
     print('-'*30)
 
-    imgs_train, imgs_mask_train = load_data(['subset0', 'subset1'])
+    imgs_train, imgs_mask_train = load_data(
+        ['subset0', 'subset1', 'subset2'])
     #imgs_train, imgs_mask_train = load_data(
     #    ['subset0', 'subset1', 'subset2',
     #     'subset3', 'subset4', 'subset5',
