@@ -13,6 +13,7 @@ import luna_unet_data3
 
 
 _DATA_DIR = '../LUNA16/output_unet_data3'
+_MODEL_PATH = './unet3.hdf5'
 
 _IMAGE_ROWS = 256
 _IMAGE_COLS = 256
@@ -112,12 +113,12 @@ def train_and_predict(use_existing):
     print('-'*30)
     model = get_unet()
     # Saving weights to unet1.hdf5 at checkpoints
-    model_checkpoint = ModelCheckpoint('unet3.hdf5', monitor='loss', save_best_only=True)
+    model_checkpoint = ModelCheckpoint(_MODEL_PATH, monitor='loss', save_best_only=True)
     #
     # Should we load existing weights? 
     # Set argument for call to train_and_predict to true at end of script
     if use_existing:
-        model.load_weights('./unet3.hdf5')
+        model.load_weights(_MODEL_PATH)
         
     print('-'*30)
     print('Fitting model...')
