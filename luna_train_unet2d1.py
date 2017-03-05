@@ -4,7 +4,7 @@ import numpy as np
 import tensorflow as tf
 from keras.models import Model
 from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D
-from keras.layers.core import Activation, Dropout
+from keras.layers import Activation, Dropout
 from keras.layers.normalization import BatchNormalization
 from keras.optimizers import Adam
 from keras.optimizers import SGD
