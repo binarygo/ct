@@ -119,6 +119,7 @@ def train_and_predict(use_existing):
               verbose=1, shuffle=True,
               callbacks=[model_checkpoint])
 
+
 def test():
     imgs_test, imgs_mask_test = load_data(['subset9'])
 
