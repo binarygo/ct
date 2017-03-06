@@ -23,7 +23,7 @@ _IMAGE_COLS = 96
 _IMAGES_MEAN = 0.180
 _IMAGES_STD = 0.270
 
-_BATCH_SIZE = 8
+_BATCH_SIZE = 6
 _NUM_EPOCHS = 100
 
 _SMOOTH = 1.
@@ -54,6 +54,7 @@ def _conv(nb_filter, nb_row, nb_col, input):
     ans = Convolution2D(nb_filter, nb_row, nb_col, border_mode='same')(input)
     ans = BatchNormalization(mode=1)(ans)
     ans = Activation('relu')(ans)
+    ans = Dropout(0.5)(ans)
     return ans
 
 
