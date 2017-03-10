@@ -7,8 +7,8 @@ from keras.layers import Input, merge, Convolution2D, MaxPooling2D, UpSampling2D
 from keras.optimizers import Adam
 from keras.optimizers import SGD
 from keras.callbacks import ModelCheckpoint, LearningRateScheduler
-from keras import backend as K
 
+import luna_train_util
 import luna_unet_data2
 
 
@@ -23,29 +23,6 @@ _IMAGES_STD = 0.270
 
 _BATCH_SIZE = 32
 _NUM_EPOCHS = 100
-
-_SMOOTH = 1.
-
-
-K.set_image_dim_ordering('th')  # Theano dimension ordering in this code
-
-
-def dice_coef(y_true, y_pred):
-    y_true_f = K.flatten(y_true)
-    y_pred_f = K.flatten(y_pred)
-    intersection = K.sum(y_true_f * y_pred_f)
-    return (2. * intersection + _SMOOTH) / (K.sum(y_true_f) + K.sum(y_pred_f) + _SMOOTH)
-
-
-def dice_coef_np(y_true,y_pred):
-    y_true_f = y_true.flatten()
-    y_pred_f = y_pred.flatten()
-    intersection = np.sum(y_true_f * y_pred_f)
-    return (2. * intersection + _SMOOTH) / (np.sum(y_true_f) + np.sum(y_pred_f) + _SMOOTH)
-
-
-def dice_coef_loss(y_true, y_pred):
-    return -dice_coef(y_true, y_pred)
 
 
 def get_unet():
@@ -74,8 +51,8 @@ def get_unet():
     model = Model(input=inputs, output=conv6)
 
     model.compile(optimizer=Adam(lr=1.0e-5),
-                  loss=dice_coef_loss, metrics=[dice_coef])
-
+                  loss=luna_train_util.dice_coef_loss,
+                  metrics=[luna_train_util.dice_coef])
     return model
         
 
@@ -99,6 +76,8 @@ def train_and_predict(use_existing):
          'subset3', 'subset4', 'subset5',
          'subset6', 'subset7', 'subset8'])
 
+    imgs_test, imgs_mask_test = load_data(['subset9'])
+
     print('-'*30)
     print('Creating and compiling model...')
     print('-'*30)
@@ -115,6 +94,7 @@ def train_and_predict(use_existing):
     print('Fitting model...')
     print('-'*30)
     model.fit(imgs_train, imgs_mask_train,
+              validation_data = (imgs_test, imgs_mask_test),
               batch_size=_BATCH_SIZE, nb_epoch=_NUM_EPOCHS,
               verbose=1, shuffle=True,
               callbacks=[model_checkpoint])

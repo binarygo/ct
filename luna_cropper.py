@@ -37,7 +37,7 @@ class Cropper(object):
         y, x = self._normalize_yx(yx)
         return (self._crop_impl(self._image, y, x),
                 self._crop_impl(self._nodule_mask, y, x),
-                (y, x))
+                (y,x))
     
     def crop_neg(self):
         for i in range(1000):
@@ -61,3 +61,8 @@ class Cropper(object):
         nodule_mask = self._crop_impl(self._nodule_mask, y, x)
         if util.is_pos_mask(nodule_mask):
             return image, nodule_mask, (y,x)
+
+    def apply_crop(self, image, yx):
+        y, x = yx
+        return self._crop_impl(image, y, x)
+
