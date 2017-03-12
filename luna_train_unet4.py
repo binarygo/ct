@@ -88,12 +88,13 @@ def test():
     imgs_test, imgs_mask_test = load_data(['subset9'])
 
     model = get_unet()
-    model.load_weights('_MODEL_PATH')
+    model.load_weights(_MODEL_PATH)
     
     imgs_mask_pred = model.predict(imgs_test)
     dice = []
     for i in range(len(imgs_test)):
-        dice.append(dice_coef_np(imgs_mask_test[i,0], imgs_mask_pred[i,0]))
+        dice.append(luna_train_util.dice_coef_np(
+            imgs_mask_test[i,0], imgs_mask_pred[i,0]))
     print 'mean dice: ', np.mean(dice)
 
 
