@@ -41,13 +41,13 @@ def shuffle_out(pos_out, neg_out, random_state):
     return all_out
 
 
-def crop_patches(cropper, num_patches):
+def crop_patches(cropper, num_patches, cpad_factor=1.0):
     pos_ans = []
     neg_ans = []
     crop_yxs = set()
     for i in range(num_patches):
         # pos
-        ans = cropper.crop_pos()
+        ans = cropper.crop_pos(cpad_factor=cpad_factor)
         if ans is not None:
             image_patch, mask_patch, crop_yx = ans
             if crop_yx not in crop_yxs:
@@ -92,3 +92,29 @@ def batch_crop_patches(cropper, num_patches, image, mask):
                 neg_ans.append(crop_patch(crop_yx))
                 crop_yxs.add(crop_yx)
     return pos_ans, neg_ans
+
+
+def load_data(subsets, output_dir, keys):
+    ans = []
+    for i in range(len(keys)):
+        ans.append([])
+    for subset in subsets:
+        data = np.load(os.path.join(output_dir, '%s.npz'%subset))
+        for i, k in enumerate(keys):
+            ans[i].append(data[k].astype(np.float32))
+    for i in range(len(ans)):
+        ans[i] = np.concatenate(ans[i])
+    return tuple(ans)
+
+
+def get_mean_and_std(subsets, output_dir, key):
+    acc_n = 0
+    acc_mean = 0.0
+    acc_var = 0.0
+    for subset in subsets:
+        images = load_data([subset], output_dir, [key])
+        n = images.size
+        acc_n += n
+        acc_mean += np.mean(images) * n
+        acc_var += np.var(images) * n
+    return float(acc_mean) / acc_n, np.sqrt(float(acc_var) / acc_n)

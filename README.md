@@ -12,3 +12,7 @@ Random sampled patches 256x256
 ## Model 4
 Random sampled patches 3x96x96, i.e. given [z-1, z, z+1]
 predict mask of z.
+
+
+## Model 5
+Random sampled patches 128x128

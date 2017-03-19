@@ -3,13 +3,20 @@ from skimage import transform
 from scipy import ndimage
 from scipy.ndimage.filters import gaussian_filter
 
+import util
+
 
 def crop(image, crop_yx, crop_size):
     assert len(image.shape) == 2
     bg = image[0, 0]
-    h, w = image.shape
-    y, x = crop_yx
     ch, cw = crop_size
+    y, x = crop_yx
+    add_y, add_x = max(0, -y), max(0, -x)
+    y += add_y
+    x += add_x
+    h, w = image.shape
+    h, w = max(y + ch, h + add_y), max(x + cw, w + add_x)
+    image = util.clip_and_pad(image, [h, w])
     ph, pw = max(0,y+ch-h), max(0,x+cw-w)
     return np.pad(image[y:y+ch, x:x+cw],
                   ((ph//2, ph-ph//2), (pw//2, pw-pw//2)),
