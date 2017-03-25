@@ -61,8 +61,8 @@ def load_data(subsets, ex_percent=0):
             exneg_images, exneg_masks = load_data_impl(exneg_label)
             tneg_size = int(min(len(exneg_images) / ex_percent,
                                 len(neg_images) / (1.0 - ex_percent)))
-            neg_size = int(tneg_size * ex_percent)
-            exneg_size = int(tneg_size * (1.0 - ex_percent))
+            exneg_size = int(tneg_size * ex_percent)
+            neg_size = int(tneg_size * (1.0 - ex_percent))
             tneg_size = neg_size + exneg_size
             tneg_images = np.concatenate([
                 neg_images[0:neg_size], exneg_images[0:exneg_size]])
