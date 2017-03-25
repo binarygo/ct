@@ -1,4 +1,5 @@
 import os
+import time
 import numpy as np
 
 import util
@@ -118,3 +119,13 @@ def get_mean_and_std(subsets, output_dir, key):
         acc_mean += np.mean(images) * n
         acc_var += np.var(images) * n
     return float(acc_mean) / acc_n, np.sqrt(float(acc_var) / acc_n)
+
+
+def shuffle_together(images, masks, seed=None):
+    if seed is None:
+        seed = int(time.time())
+    images = np.stack(util.shuffle(
+        images, random_state=np.random.RandomState(seed)))
+    masks = np.stack(util.shuffle(
+        masks, random_state=np.random.RandomState(seed)))
+    return images, masks

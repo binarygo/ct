@@ -23,16 +23,20 @@ def _conv(nb_filter, nb_row, nb_col, input,
 
 
 def make_unet(depths, inputs, kernel_nb_row, kernel_nb_col,
-              batch_norm=False, dropout_prob=None):
+              batch_norm_inputs=False, batch_norm=False,
+              dropout_prob=None):
     num_depths = len(depths)
     assert num_depths >= 3
+
+    top = inputs
+    if batch_norm_inputs:
+        top = BatchNormalization(mode=1)(inputs)
 
     def conv_impl(nb_filter, input):
         return _conv(nb_filter, kernel_nb_row, kernel_nb_col,
                      input, batch_norm, dropout_prob)
 
     convs = []
-    top = inputs
     for i in range(num_depths-1):
         depth = depths[i]
         conv = conv_impl(depth, top)

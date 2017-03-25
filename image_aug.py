@@ -8,18 +8,27 @@ import util
 
 def crop(image, crop_yx, crop_size):
     assert len(image.shape) == 2
-    bg = image[0, 0]
-    ch, cw = crop_size
-    y, x = crop_yx
-    add_y, add_x = max(0, -y), max(0, -x)
-    y += add_y
-    x += add_x
-    h, w = image.shape
-    h, w = max(y + ch, h + add_y), max(x + cw, w + add_x)
-    image = util.clip_and_pad(image, [h, w])
-    ph, pw = max(0,y+ch-h), max(0,x+cw-w)
-    return np.pad(image[y:y+ch, x:x+cw],
-                  ((ph//2, ph-ph//2), (pw//2, pw-pw//2)),
+    bg = image[0,0]
+    hw = np.asarray(image.shape, dtype=np.int)
+    chw = np.asarray(crop_size, dtype=np.int)
+    cyx0 = np.asarray(crop_yx, dtype=np.int)
+    cyx1 = cyx0 + chw
+
+    tyx0 = np.minimum(np.maximum([0,0], cyx0), hw)
+    tyx1 = np.minimum(np.maximum([0,0], cyx1), hw)
+
+    pL_yx = np.maximum(tyx0-cyx0, 0)
+    pR_yx = np.maximum(chw-(pL_yx+tyx1-tyx0), 0)
+
+    cy0, cx0 = cyx0
+    cy1, cx1 = cyx1
+    ty0, tx0 = tyx0
+    ty1, tx1 = tyx1
+    pL_y, pL_x = pL_yx
+    pR_y, pR_x = pR_yx
+
+    return np.pad(image[ty0:ty1, tx0:tx1],
+                  ((pL_y, pR_y), (pL_x, pR_x)),
                   mode='constant', constant_values=bg)
 
 

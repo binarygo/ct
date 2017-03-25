@@ -12,11 +12,10 @@ import luna_preprocess
 
 
 _SEED = 123456789
-_CROP_HEIGHT = 128
-_CROP_WIDTH = 128
+_CROP_HEIGHT = 96
+_CROP_WIDTH = 96
 _NUM_PATCHES = 15
-_NUM_RAND_SLICES = 5
-_NUM_AUGS = 2
+_NUM_RAND_SLICES = 3
 _OUTPUT_DIR = '../LUNA16/output_unet_data5'
 
 
@@ -35,7 +34,7 @@ def _sample_patches(image, mask, lung_aug=None, mask_aug=None):
         mask = util.to_bool_mask(mask).astype(np.float32)
         
     c = luna_cropper.Cropper(image, mask, [_CROP_HEIGHT, _CROP_WIDTH])
-    return luna_util.crop_patches(c, _NUM_PATCHES, cpad_factor=0.5)
+    return luna_util.crop_patches(c, _NUM_PATCHES, cpad_factor=0.8)
 
 
 def process_data_dir(data_dir):
@@ -66,7 +65,7 @@ def process_data_dir(data_dir):
         nodules = image.get_v_nodules()
         for nod_idx in range(len(nodules)):
             nod_v_x, nod_v_y, nod_v_z, nod_v_d = nodules[nod_idx]
-            for z_offset in [-2, -1, 0, 1, 2]:
+            for z_offset in [-1, 0, 1]:
                 slice_zs.append(util.clip_dim0(masked_lung, nod_v_z + z_offset))
         # random sample slices
         for _ in range(_NUM_RAND_SLICES):
@@ -78,17 +77,14 @@ def process_data_dir(data_dir):
         for slice_z in slice_zs:
             new_image, new_nodule_mask = luna_util.slice_image(
                 masked_lung, all_nodule_mask, slice_z)
-            pos_ans, neg_ans = _sample_patches(
-                new_image, new_nodule_mask, None, None)
-            tmp_pos_out.extend(pos_ans)
-            tmp_neg_out.extend(neg_ans)
-            for _ in range(_NUM_AUGS):
+            if random_state.randint(2):  # 50% prob
+                pos_ans, neg_ans = _sample_patches(
+                    new_image, new_nodule_mask, None, None)
+            else:
                 pos_ans, neg_ans = _sample_patches(
                     new_image, new_nodule_mask, lung_aug, mask_aug)
-                tmp_pos_out.extend(pos_ans)
-                tmp_neg_out.extend(neg_ans)
-        tmp_neg_out = util.shuffle(tmp_neg_out, len(tmp_pos_out) * 2,
-                                   random_state)
+            tmp_pos_out.extend(pos_ans)
+            tmp_neg_out.extend(neg_ans)
         pos_out.extend(tmp_pos_out)
         neg_out.extend(tmp_neg_out)
 

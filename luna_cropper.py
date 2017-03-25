@@ -52,15 +52,13 @@ class Cropper(object):
             nod_idx = self._random_state.randint(len(self._nod_yxs))
             nod_yx = self._nod_yxs[nod_idx]
 
-        cpad = self._csize * cpad_factor
-
         yx_upper_left = -self._csize
         yx_lower_right = self._size + self._csize
 
-        yx_min = (nod_yx + cpad) - self._csize
+        yx_min = (nod_yx - self._csize * (1.0 + cpad_factor) / 2.0)
         yx_min = np.minimum(np.maximum(yx_upper_left, yx_min),
                             yx_lower_right)
-        yx_max = (nod_yx - cpad)
+        yx_max = (nod_yx - self._csize * (1.0 - cpad_factor) / 2.0)
         yx_max = np.minimum(np.maximum(yx_upper_left, yx_max),
                             yx_lower_right)
         yx_max = np.maximum(yx_max, yx_min)

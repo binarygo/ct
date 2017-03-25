@@ -15,4 +15,4 @@ predict mask of z.
 
 
 ## Model 5
-Random sampled patches 128x128
+Random sampled patches 96x96
