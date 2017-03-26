@@ -471,7 +471,11 @@ def is_pos_mask(mask):
     return np.sum(to_bool_mask(mask))>=0.5
 
 
+def apply_mask_impl(image, mask, bg):
+    image[to_bool_mask(mask)==False] = bg
+
+
 def apply_mask(image, mask):
     image = image.copy()
-    image[to_bool_mask(mask)==False] = -1000
+    apply_mask_impl(image, mask, -1000)
     return image
