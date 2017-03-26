@@ -14,13 +14,14 @@ import luna_train_util
 import luna_unet_data5
 
 
+_SEED = 123456789
 _DATA_DIR = '../LUNA16/output_unet_data5'
 _MODEL_PATH = './unet5.hdf5'
 
 _IMAGE_ROWS = 96
 _IMAGE_COLS = 96
 
-_EX_PERCENT = 0.8
+_EX_PERCENT = 0.75
 _BATCH_SIZE = 16
 _NUM_EPOCHS = 100
 
@@ -42,9 +43,14 @@ def get_unet():
         
 
 def load_data(subsets, ex_percent=0):
+    random_states = [
+        np.random.RandomState(_SEED),
+        np.random.RandomState(_SEED)
+    ]
     def load_data_impl(label):
         return luna_util.shuffle_together(
-            *luna_unet_data5.load_data([label]))
+            *luna_unet_data5.load_data([label]),
+            random_states=random_states)
     images = []
     masks = []
     for subset in subsets:
@@ -68,6 +74,8 @@ def load_data(subsets, ex_percent=0):
                 neg_images[0:neg_size], exneg_images[0:exneg_size]])
             tneg_masks = np.concatenate([
                 neg_masks[0:neg_size], exneg_masks[0:exneg_size]])
+            tneg_imags, tneg_masks = luna_util.shuffle_together(
+                tneg_images, tneg_masks, random_states)
         pos_size = len(pos_images)
         tneg_size = len(tneg_images)
         size = min(pos_size, tneg_size)
@@ -75,7 +83,8 @@ def load_data(subsets, ex_percent=0):
         masks.extend([pos_masks[0:size], tneg_masks[0:size]])
     images = np.concatenate(images)
     masks = np.concatenate(masks)
-    images, masks = luna_util.shuffle_together(images, masks)
+    images, masks = luna_util.shuffle_together(
+        images, masks, random_states)
     return images, masks
     
 

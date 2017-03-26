@@ -317,14 +317,6 @@ def segment_lung_mask_v3(image, spacing):
     return _dilate_mask(_postprocess_mask(binary), spacing)
 
 
-def apply_mask(image, mask):
-    image = image.copy()
-    new_mean = np.mean(image[mask>0])
-    new_std = np.std(image[mask>0])
-    image[mask==0] = -1000
-    return image
-
-
 def normalize(image, pixel_mean=0.25):
     MIN_BOUND = -1000.0
     MAX_BOUND = 400.0
@@ -477,3 +469,9 @@ def to_bool_mask(mask):
 
 def is_pos_mask(mask):
     return np.sum(to_bool_mask(mask))>=0.5
+
+
+def apply_mask(image, mask):
+    image = image.copy()
+    image[to_bool_mask(mask)==False] = -1000
+    return image

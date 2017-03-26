@@ -121,11 +121,14 @@ def get_mean_and_std(subsets, output_dir, key):
     return float(acc_mean) / acc_n, np.sqrt(float(acc_var) / acc_n)
 
 
-def shuffle_together(images, masks, seed=None):
-    if seed is None:
+def shuffle_together(images, masks, random_states=None):
+    if random_states is None:
         seed = int(time.time())
-    images = np.stack(util.shuffle(
-        images, random_state=np.random.RandomState(seed)))
-    masks = np.stack(util.shuffle(
-        masks, random_state=np.random.RandomState(seed)))
+        random_states = [
+            np.random.RandomState(seed),
+            np.random.RandomState(seed)
+        ]
+    rs1, rs2 = random_states
+    images = np.stack(util.shuffle(images, random_state=rs1))
+    masks = np.stack(util.shuffle(masks, random_state=rs2))
     return images, masks
