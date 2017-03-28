@@ -47,7 +47,7 @@ def _get_done_patient_names(stage):
 
 def _test_unet5(patient_name, model, stage):
     image = kagl_preprocess.Image(stage)
-    image.load(name)
+    image.load(patient_name)
     lung_mask = image._lung_mask
     masked_lung = image.masked_lung
     nodule_mask = []
@@ -75,16 +75,22 @@ if __name__ == '__main__':
 
     all_names = set(_get_all_patient_names(stage))
     print '********** all: %d'%len(all_names)
+    sys.stdout.flush()
 
     done_names = set(_get_done_patient_names(stage))&all_names
     print '********** done: %d'%len(done_names)
+    sys.stdout.flush()
 
     while len(done_names) != len(all_names):
         names = set(_get_preprocessed_patient_names(stage))
         names = (names&all_names)-done_names
         print '********** tbd: %d'%len(names)
+        sys.stdout.flush()
         for i, name in enumerate(names):
             print '========== process %s: %d of %d'%(name, i+1, len(names))
+            sys.stdout.flush()
             _test_unet5(name, model, stage)
+            done_names.add(name)
         print 'sleep ...'
-        os.sleep(300)  # 5min
+        sys.stdout.flush()
+        time.sleep(300)  # 5min
