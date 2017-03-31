@@ -15,7 +15,7 @@ def _conv(nb_filter, nb_row, nb_col, input,
           batch_norm, dropout_prob):
     ans = Convolution2D(nb_filter, nb_row, nb_col, border_mode='same')(input)
     if batch_norm:
-        ans = BatchNormalization(mode=1)(ans)
+        ans = BatchNormalization()(ans)
     ans = Activation('relu')(ans)
     if dropout_prob is not None:
         ans = Dropout(dropout_prob)(ans)
@@ -30,7 +30,7 @@ def make_unet(depths, inputs, kernel_nb_row, kernel_nb_col,
 
     top = inputs
     if batch_norm_inputs:
-        top = BatchNormalization(mode=1)(inputs)
+        top = BatchNormalization()(inputs)
 
     def conv_impl(nb_filter, input):
         return _conv(nb_filter, kernel_nb_row, kernel_nb_col,

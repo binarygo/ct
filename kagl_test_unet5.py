@@ -73,6 +73,10 @@ if __name__ == '__main__':
     with tf.device('/gpu:0'):
         model = _get_model()
 
+    name = '92d5f6230c3b6f6256e57d30981c1aaf'
+    _test_unet5(name, model, stage)
+    sys.exit(0)
+
     all_names = set(_get_all_patient_names(stage))
     print '********** all: %d'%len(all_names)
     sys.stdout.flush()
