@@ -479,3 +479,7 @@ def apply_mask(image, mask):
     image = image.copy()
     apply_mask_impl(image, mask, -1000)
     return image
+
+
+def ball3d_volume(r):
+    return 4.0/3.0*np.pi*(r**3)
