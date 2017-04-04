@@ -27,14 +27,15 @@ _NUM_EPOCHS = 1000
 
 
 def get_unet():
-    model = luna_train_util.make_unet(
+    model = luna_train_util.UnetModel(
         depths=[32, 64, 128, 256],
+        poolings=True,
         inputs=Input((1, _IMAGE_ROWS, _IMAGE_COLS)),
         kernel_nb_row=3,
         kernel_nb_col=3,
         batch_norm_inputs=True,
         batch_norm=True,
-        dropout_prob=0.5)
+        dropout_prob=0.5).make_model()
 
     model.compile(optimizer=Adam(lr=1.0e-5),
                   loss=luna_train_util.dice_coef_loss,
@@ -94,7 +95,7 @@ def train_and_predict(use_existing):
     print('-'*30)
 
     subsets_train = []
-    for i in [0,1,2,3,4,5,6,7,8]:
+    for i in [0]: #[0,1,2,3,4,5,6,7,8]:
         subsets_train.append('subset%d'%i)
 
     subsets_test = []

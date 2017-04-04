@@ -3,7 +3,7 @@ Full image rescaled to 512x512
 
 ## Model 2
 Random sampled patches 96x96
-## 2d1
+# 2d1
 Symmetric U-NET with batchnorm and dropout.
 
 ## Model 3
@@ -16,3 +16,5 @@ predict mask of z.
 
 ## Model 5
 Random sampled patches 96x96
+# 5d1
+deep U-NET
