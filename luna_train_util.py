@@ -32,8 +32,8 @@ def dice_coef_np(y_true,y_pred):
 
 
 def _conv(nb_filter, nb_row, nb_col, input,
-          batch_norm, dropout_prob):
-    ans = Convolution2D(nb_filter, nb_row, nb_col, border_mode='same')(input)
+          batch_norm, dropout_prob, name=None):
+    ans = Convolution2D(nb_filter, nb_row, nb_col, border_mode='same', name=name)(input)
     if batch_norm:
         ans = BatchNormalization(mode=1)(ans)
     ans = Activation('relu')(ans)
@@ -65,9 +65,9 @@ class UnetModel(object):
         if batch_norm_inputs:
             top = BatchNormalization(mode=1)(inputs)
 
-        def conv_impl(nb_filter, input):
+        def conv_impl(nb_filter, input, name=None):
             return _conv(nb_filter, kernel_nb_row, kernel_nb_col,
-                         input, batch_norm, dropout_prob)
+                         input, batch_norm, dropout_prob, name=name)
 
         convs = []
         for i in range(num_depths-1):
@@ -81,7 +81,7 @@ class UnetModel(object):
                 top = pool
 
         conv = conv_impl(depths[-1], top)
-        conv = conv_impl(depths[-1], conv)
+        conv = conv_impl(depths[-1], conv, name='utip')
         mid = conv
         convs.append(conv)
 
