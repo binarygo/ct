@@ -84,4 +84,4 @@ def train_and_predict(use_existing):
 
 if __name__ == '__main__':
     with tf.device('/gpu:0'):
-        train_and_predict(False)
+        train_and_predict(True)

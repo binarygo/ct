@@ -77,8 +77,16 @@ def plot_3d(image, threshold=-300):
     plt.show()
 
 
+def erode_mask_impl(mask, ball_r):
+    return morphology.binary_erosion(mask, morphology.ball(ball_r))
+
+
+def dilate_mask_impl(mask, ball_r):
+    return morphology.binary_dilation(mask, morphology.ball(ball_r))
+
+
 def _dilate_mask(mask, spacing):
-    return morphology.binary_dilation(mask, morphology.ball(10.0 / spacing))
+    return dilate_mask_impl(mask, 10.0 / spacing)
 
 
 def _largest_label_volume(im, bg=-1):
@@ -482,4 +490,20 @@ def apply_mask(image, mask):
 
 
 def ball3d_volume(r):
+    if r <= 0.0:
+        return 0.0
     return 4.0/3.0*np.pi*(r**3)
+
+
+def ball3d_r(volume):
+    if volume <= 0.0:
+        return 0.0
+    return np.power(volume*3.0/4.0/np.pi, 1.0/3)
+
+
+def distance(x1, y1, x2, y2):
+    return np.sqrt((x1-x2)**2 + (y1-y2)**2)
+
+
+def distance3d(x1, y1, z1, x2, y2, z2):
+    return np.sqrt((x1-x2)**2+(y1-y2)**2+(z1-z2)**2)

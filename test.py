@@ -51,7 +51,7 @@ print("[ground-truth patients, test-patients] = [%d, %d]"
 def classify_data():
     # load feature data
     print 'load feature data'
-    feature_map = np.load('./feature_map_thres_10.dat')
+    feature_map = np.load('./feature_map_thres_5.dat')
     #feature_map.keys()
     X_map = feature_map[()]
 
@@ -99,7 +99,7 @@ def classify_data():
     for train, test in kf:
         X_train, X_test, y_train, y_test = \
             X_scaled[train, :], X_scaled[test, :], Y[train], Y[test]
-        clf = RF(n_estimators=10000, n_jobs=3)
+        clf = RF(n_estimators=10000, n_jobs=3, criterion='entropy')
         clf.fit(X_train, y_train)
         y_pred[test] = clf.predict_proba(X_test)[:,1]
 

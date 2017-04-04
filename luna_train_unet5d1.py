@@ -16,19 +16,20 @@ import luna_unet_data5
 
 _SEED = 123456789
 _DATA_DIR = '../LUNA16/output_unet_data5'
-_MODEL_PATH = './unet5.hdf5'
+_MODEL_PATH = './unet5d1.hdf5'
 
 _IMAGE_ROWS = 96
 _IMAGE_COLS = 96
 
-_EX_PERCENT = 0.75
+_EX_PERCENT = 0.0
 _BATCH_SIZE = 16
 _NUM_EPOCHS = 1000
 
 
 def get_unet():
-    model = luna_train_util.make_unet(
-        depths=[32, 64, 128, 256],
+    model = luna_train_util.make_unet_v2(
+        depths=[32, 32, 64, 64, 128, 128, 256],
+        poolings=[False, True, False, True, False, True, False],
         inputs=Input((1, _IMAGE_ROWS, _IMAGE_COLS)),
         kernel_nb_row=3,
         kernel_nb_col=3,
@@ -147,4 +148,4 @@ def pred_nodule_mask(image, model):
 
 if __name__ == '__main__':
     with tf.device('/gpu:0'):
-        train_and_predict(True)
+        train_and_predict(False)

@@ -6,32 +6,33 @@ from scipy.ndimage.filters import gaussian_filter
 import util
 
 
-def crop(image, crop_yx, crop_size):
-    assert len(image.shape) == 2
-    bg = image[0,0]
-    hw = np.asarray(image.shape, dtype=np.int)
-    chw = np.asarray(crop_size, dtype=np.int)
-    cyx0 = np.asarray(crop_yx, dtype=np.int)
-    cyx1 = cyx0 + chw
+def crop(image, crop_x, crop_size, bg=None):
+    zero_x = tuple([0]*image.ndim)
+    if bg is None:
+        bg = image[zero_x]
+    image_size = np.asarray(image.shape, dtype=np.int)
+    crop_size = np.asarray(crop_size, dtype=np.int)
+    crop_x0 = np.asarray(crop_x, dtype=np.int)
+    crop_x1 = crop_x0 + crop_size
 
-    tyx0 = np.minimum(np.maximum([0,0], cyx0), hw)
-    tyx1 = np.minimum(np.maximum([0,0], cyx1), hw)
+    t_x0 = np.minimum(np.maximum(zero_x, crop_x0), image_size)
+    t_x1 = np.minimum(np.maximum(zero_x, crop_x1), image_size)
 
-    pL_yx = np.maximum(tyx0-cyx0, 0)
-    pR_yx = np.maximum(chw-(pL_yx+tyx1-tyx0), 0)
+    pad_before = np.maximum(t_x0-crop_x0, 0)
+    pad_after = np.maximum(crop_size-(pad_before+t_x1-t_x0), 0)
 
-    cy0, cx0 = cyx0
-    cy1, cx1 = cyx1
-    ty0, tx0 = tyx0
-    ty1, tx1 = tyx1
-    pL_y, pL_x = pL_yx
-    pR_y, pR_x = pR_yx
+    slices = tuple([
+        slice(t_x0[i], t_x1[i])
+        for i in range(image.ndim)
+    ])
+    pads = tuple([
+        (pad_before[i], pad_after[i])
+        for i in range(image.ndim)
+    ])
 
-    return np.pad(image[ty0:ty1, tx0:tx1],
-                  ((pL_y, pR_y), (pL_x, pR_x)),
-                  mode='constant', constant_values=bg)
+    return np.pad(image[slices], pads, mode='constant', constant_values=bg)
 
-
+    
 def rotate(image, angle):
     assert len(image.shape) == 2
 
