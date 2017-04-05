@@ -28,14 +28,15 @@ _NUM_EPOCHS = 1000
 
 def get_unet():
     model = luna_train_util.UnetModel(
-        depths=[32] * 4 + [64] * 4 + [128],
-        poolings=([False] * 3 + [True]) + ([False] * 3 + [True]),
+        depths=[32, 64, 128, 256],
+        poolings=True,
         inputs=Input((1, _IMAGE_ROWS, _IMAGE_COLS)),
         kernel_nb_row=3,
         kernel_nb_col=3,
         batch_norm_inputs=True,
         batch_norm=True,
-        dropout_prob=0.5).make_model()
+        dropout_prob=0.5,
+        use_shortcut=True).make_model()
 
     model.compile(optimizer=Adam(lr=1.0e-5),
                   loss=luna_train_util.dice_coef_loss,

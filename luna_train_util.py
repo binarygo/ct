@@ -31,14 +31,30 @@ def dice_coef_np(y_true,y_pred):
             (np.sum(y_true_f) + np.sum(y_pred_f) + _DICE_SMOOTH))
 
 
+def _append(s, postfix):
+    return s + postfix if s is not None else None
+
+
 def _conv(nb_filter, nb_row, nb_col, input,
-          batch_norm, dropout_prob, name=None):
-    ans = Convolution2D(nb_filter, nb_row, nb_col, border_mode='same', name=name)(input)
+          batch_norm, dropout_prob,
+          use_shortcut=False, name=None):
+    ans = Convolution2D(nb_filter, nb_row, nb_col,
+                        border_mode='same')(input)
+    x = ans
     if batch_norm:
         ans = BatchNormalization(mode=1)(ans)
-    ans = Activation('relu')(ans)
+    ans = Activation('relu', name=name)(ans)
     if dropout_prob is not None:
         ans = Dropout(dropout_prob)(ans)
+    if use_shortcut:
+        ans = Convolution2D(nb_filter, nb_row, nb_col,
+                            border_mode='same')(ans)
+        if batch_norm:
+            ans = BatchNormalization(mode=1)(ans)
+        ans = merge([x, ans], mode='sum')
+        ans = Activation('relu', name=_append(name,'_shortcut'))(ans)
+        if dropout_prob is not None:
+            ans = Dropout(dropout_prob)(ans)
     return ans
 
 
@@ -52,7 +68,8 @@ class UnetModel(object):
                  kernel_nb_col,
                  batch_norm_inputs=False,
                  batch_norm=False,
-                 dropout_prob=None):
+                 dropout_prob=None,
+                 use_shortcut=False):
         num_depths = len(depths)
         assert num_depths >= 2
 
@@ -67,7 +84,8 @@ class UnetModel(object):
 
         def conv_impl(nb_filter, input, name=None):
             return _conv(nb_filter, kernel_nb_row, kernel_nb_col,
-                         input, batch_norm, dropout_prob, name=name)
+                         input, batch_norm, dropout_prob,
+                         use_shortcut=use_shortcut, name=name)
 
         convs = []
         for i in range(num_depths-1):
